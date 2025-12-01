@@ -43,6 +43,13 @@ class Ticket:
                 if ticket.get('received_date'):
                     received = datetime.fromisoformat(ticket['received_date'])
                     resolved = datetime.fromisoformat(data['resolved_at'])
+
+                    # Supprimer les timezone pour permettre la soustraction
+                    if hasattr(received, 'tzinfo') and received.tzinfo is not None:
+                        received = received.replace(tzinfo=None)
+                    if hasattr(resolved, 'tzinfo') and resolved.tzinfo is not None:
+                        resolved = resolved.replace(tzinfo=None)
+
                     resolution_time = (resolved - received).total_seconds() / 60
                     data['resolution_time_minutes'] = int(resolution_time)
 

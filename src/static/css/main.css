@@ -264,6 +264,7 @@ input:focus, select:focus, textarea:focus {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    max-height: calc(90vh - 200px);
 }
 
 .summary-text {
