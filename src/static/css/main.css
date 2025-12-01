@@ -287,3 +287,57 @@ input:focus, select:focus, textarea:focus {
         max-width: 800px !important;
     }
 }
+
+/* Responsive amélioré pour tablettes */
+@media (max-width: 900px) {
+    .modal-content {
+        max-width: 95% !important;
+        width: 95% !important;
+        padding: 1.5rem !important;
+    }
+
+    .ticket-modal-columns {
+        gap: 1.5rem;
+    }
+
+    .ticket-conversation {
+        padding-top: 1.5rem;
+    }
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 600px) {
+    .modal-content {
+        max-width: 100% !important;
+        width: 100% !important;
+        max-height: 100vh !important;
+        padding: 1rem !important;
+        border-radius: 0 !important;
+    }
+
+    .ticket-modal-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .ticket-modal-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .ticket-modal-columns {
+        gap: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .ticket-conversation .email-thread-container {
+        max-height: 50vh;
+    }
+
+    .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+}

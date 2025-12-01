@@ -69,7 +69,13 @@ function createTicketCard(ticket) {
     const timeAgo = formatTimeAgo(ticket.received_date);
 
     return `
-        <div class="ticket-card" onclick="openTicketModal(${ticket.id})">
+        <div class="ticket-card"
+             draggable="true"
+             data-ticket-id="${ticket.id}"
+             data-ticket-status="${ticket.status}"
+             ondragstart="handleDragStart(event)"
+             ondragend="handleDragEnd(event)"
+             onclick="handleTicketClick(event, ${ticket.id})">
             <div class="ticket-header">
                 <span class="ticket-id">#${ticket.id}</span>
                 ${priorityBadge}
@@ -276,3 +282,133 @@ function exportTickets(format) {
     const url = api.getExportURL(format, filters);
     window.open(url, '_blank');
 }
+
+// ============================================
+// DRAG & DROP
+// ============================================
+
+let draggedTicketId = null;
+let isDragging = false;
+
+function handleTicketClick(event, ticketId) {
+    // Ne pas ouvrir la modal si on vient de finir un drag
+    if (isDragging) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+    }
+    openTicketModal(ticketId);
+}
+
+function handleDragStart(event) {
+    isDragging = true;
+    draggedTicketId = event.target.dataset.ticketId;
+
+    event.target.style.opacity = '0.5';
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/html', event.target.innerHTML);
+
+    // Ajouter une classe visuelle
+    event.target.classList.add('dragging');
+}
+
+function handleDragEnd(event) {
+    event.target.style.opacity = '1';
+    event.target.classList.remove('dragging');
+
+    // Remettre isDragging à false après un court délai pour éviter le clic
+    setTimeout(() => {
+        isDragging = false;
+    }, 100);
+
+    // Retirer les classes de survol de toutes les colonnes
+    document.querySelectorAll('.kanban-column').forEach(col => {
+        col.classList.remove('drag-over');
+    });
+}
+
+function handleDragOver(event) {
+    if (event.preventDefault) {
+        event.preventDefault();
+    }
+    event.dataTransfer.dropEffect = 'move';
+
+    // Trouver la colonne parente
+    const column = event.target.closest('.kanban-column');
+    if (column) {
+        column.classList.add('drag-over');
+    }
+
+    return false;
+}
+
+function handleDragEnter(event) {
+    const column = event.target.closest('.kanban-column');
+    if (column) {
+        column.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(event) {
+    const column = event.target.closest('.kanban-column');
+    if (column && !column.contains(event.relatedTarget)) {
+        column.classList.remove('drag-over');
+    }
+}
+
+async function handleDrop(event) {
+    if (event.stopPropagation) {
+        event.stopPropagation();
+    }
+
+    const column = event.target.closest('.kanban-column');
+    if (!column || !draggedTicketId) {
+        return false;
+    }
+
+    const newStatus = column.dataset.status;
+    const oldStatus = event.dataTransfer.getData('text/html');
+
+    // Mettre à jour le ticket
+    try {
+        await api.updateTicket(draggedTicketId, { status: newStatus });
+
+        // Recharger les tickets
+        await loadTickets();
+
+        // Afficher une notification
+        showNotification(`Ticket #${draggedTicketId} déplacé vers "${getStatusLabel(newStatus)}"`, 'success');
+    } catch (error) {
+        console.error('Error updating ticket:', error);
+        showNotification('Erreur lors du déplacement du ticket', 'error');
+    }
+
+    column.classList.remove('drag-over');
+    return false;
+}
+
+function getStatusLabel(status) {
+    const labels = {
+        'new': 'Nouveau',
+        'in_progress': 'En cours',
+        'resolved': 'Résolu',
+        'closed': 'Fermé'
+    };
+    return labels[status] || status;
+}
+
+function initializeDropZones() {
+    const columns = document.querySelectorAll('.kanban-column');
+
+    columns.forEach(column => {
+        column.addEventListener('dragover', handleDragOver);
+        column.addEventListener('dragenter', handleDragEnter);
+        column.addEventListener('dragleave', handleDragLeave);
+        column.addEventListener('drop', handleDrop);
+    });
+}
+
+// Initialiser les drop zones au chargement
+document.addEventListener('DOMContentLoaded', () => {
+    initializeDropZones();
+});

@@ -313,3 +313,51 @@
 [data-theme="dark"] .chat-message-content {
     color: rgba(255, 255, 255, 0.87);
 }
+
+/* ============================================
+   DRAG & DROP STYLES
+   ============================================ */
+
+.ticket-card[draggable="true"] {
+    cursor: move;
+    cursor: grab;
+    transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+}
+
+.ticket-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.ticket-card.dragging {
+    opacity: 0.5;
+    transform: rotate(3deg) scale(0.95);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.kanban-column.drag-over {
+    background: var(--bg-tertiary);
+    border: 2px dashed var(--primary);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.kanban-column.drag-over .column-header {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+/* Animation pour indiquer qu'on peut drop */
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(33, 150, 243, 0);
+    }
+}
+
+.kanban-column.drag-over {
+    animation: pulse 1.5s infinite;
+}
