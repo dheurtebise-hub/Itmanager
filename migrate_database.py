@@ -30,8 +30,9 @@ try:
     # Vérifier si les colonnes manquent
     needs_has_attachments = 'has_attachments' not in existing_columns
     needs_importance = 'importance' not in existing_columns
+    needs_priority_boost = 'priority_boost' not in existing_columns
 
-    if not needs_has_attachments and not needs_importance:
+    if not needs_has_attachments and not needs_importance and not needs_priority_boost:
         print("✅ Base de données déjà à jour !")
         print()
         sys.exit(0)
@@ -42,6 +43,8 @@ try:
         print("   - has_attachments")
     if needs_importance:
         print("   - importance")
+    if needs_priority_boost:
+        print("   - priority_boost")
 
     print()
     print("🔨 Ajout des colonnes...")
@@ -55,13 +58,17 @@ try:
         db.execute("ALTER TABLE tickets ADD COLUMN importance INTEGER DEFAULT 0")
         print("   ✅ Colonne 'importance' ajoutée")
 
+    if needs_priority_boost:
+        db.execute("ALTER TABLE tickets ADD COLUMN priority_boost INTEGER DEFAULT 0")
+        print("   ✅ Colonne 'priority_boost' ajoutée")
+
     print()
 
     # Vérifier
     columns_info = db.fetchall("PRAGMA table_info(tickets)")
     existing_columns = [col['name'] for col in columns_info]
 
-    if 'has_attachments' in existing_columns and 'importance' in existing_columns:
+    if 'has_attachments' in existing_columns and 'importance' in existing_columns and 'priority_boost' in existing_columns:
         print(f"✅ Migration réussie ! Table 'tickets' a maintenant {len(existing_columns)} colonnes")
     else:
         print("❌ Erreur : Les colonnes n'ont pas été ajoutées correctement")
