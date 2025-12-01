@@ -154,7 +154,14 @@ def get_stats():
 @ticket_bp.route('/api/sync', methods=['POST'])
 def sync_now():
     """Déclenche une synchronisation manuelle."""
-    result = sync_service.sync_now()
+    data = request.json or {}
+    initial_import = data.get('initial_import', False)
+    import_limit = data.get('import_limit', 50)
+
+    result = sync_service.sync_now(
+        initial_import=initial_import,
+        import_limit=import_limit
+    )
     return jsonify(result)
 
 @ticket_bp.route('/api/sync/status', methods=['GET'])

@@ -169,7 +169,7 @@ function applyFilters(searchQuery = '') {
 }
 
 // Synchronisation
-async function syncNow() {
+async function syncNow(initialImport = false) {
     const button = document.querySelector('button[onclick="syncNow()"]');
     const icon = document.getElementById('syncIcon');
 
@@ -177,15 +177,55 @@ async function syncNow() {
     if (icon) icon.innerHTML = '<span class="loading"></span>';
 
     try {
-        await api.syncNow();
-        await loadTickets();
-        await loadStats();
+        const result = await api.syncNow(initialImport);
+
+        if (result.status === 'success') {
+            await loadTickets();
+            await loadStats();
+
+            const msg = initialImport
+                ? `Import initial: ${result.new_tickets} tickets créés (${result.emails_found} emails trouvés)`
+                : `Synchronisation: ${result.new_tickets} nouveaux tickets`;
+
+            showNotification(msg, 'success');
+        } else if (result.status === 'error') {
+            showNotification('Erreur: ' + result.message, 'error');
+        }
     } catch (error) {
-        alert('Erreur lors de la synchronisation');
+        console.error('Erreur sync:', error);
+        showNotification('Erreur lors de la synchronisation', 'error');
     } finally {
         if (button) button.disabled = false;
         if (icon) icon.textContent = '🔄';
     }
+}
+
+async function initialImport() {
+    if (!confirm('Importer tous les emails récents du dossier configuré (max 50) ?\n\nCela peut prendre quelques minutes si vous avez beaucoup d\'emails.')) {
+        return;
+    }
+
+    await syncNow(true);
+}
+
+function showNotification(message, type = 'info') {
+    // Créer une notification temporaire
+    const notif = document.createElement('div');
+    notif.className = `status-message status-${type}`;
+    notif.style.position = 'fixed';
+    notif.style.top = '20px';
+    notif.style.right = '20px';
+    notif.style.zIndex = '9999';
+    notif.style.maxWidth = '400px';
+    notif.textContent = message;
+
+    document.body.appendChild(notif);
+
+    setTimeout(() => {
+        notif.style.transition = 'opacity 0.3s';
+        notif.style.opacity = '0';
+        setTimeout(() => notif.remove(), 300);
+    }, 5000);
 }
 
 // Stats

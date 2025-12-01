@@ -54,8 +54,14 @@ class APIClient {
     }
 
     // Sync
-    async syncNow() {
-        return this.request('/api/sync', { method: 'POST' });
+    async syncNow(initialImport = false, importLimit = 50) {
+        return this.request('/api/sync', {
+            method: 'POST',
+            body: JSON.stringify({
+                initial_import: initialImport,
+                import_limit: importLimit
+            }),
+        });
     }
 
     async getSyncStatus() {

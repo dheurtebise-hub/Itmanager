@@ -60,8 +60,14 @@ class OutlookConnector:
         finally:
             pythoncom.CoUninitialize()
 
-    def get_new_emails(self, mark_as_read: bool = False, limit: int = None) -> List[Dict[str, Any]]:
-        """Récupère les nouveaux emails de tous les dossiers activés."""
+    def get_new_emails(self, mark_as_read: bool = False, limit: int = None, only_unread: bool = False) -> List[Dict[str, Any]]:
+        """Récupère les nouveaux emails de tous les dossiers activés.
+
+        Args:
+            mark_as_read: Marquer les emails comme lus après import
+            limit: Nombre maximum d'emails à récupérer par dossier
+            only_unread: Si True, ne récupère que les emails non lus
+        """
         all_emails = []
 
         for folder_config in self.folders_config:
@@ -72,7 +78,9 @@ class OutlookConnector:
             priority_boost = folder_config.get('priority_boost', 0)
 
             try:
-                emails = self._get_emails_from_folder(folder_name, mark_as_read, limit)
+                emails = self._get_emails_from_folder(folder_name, mark_as_read, limit, only_unread)
+
+                self.logger.info(f"Dossier '{folder_name}': {len(emails)} emails récupérés")
 
                 for email in emails:
                     email['priority_boost'] = priority_boost
@@ -80,12 +88,13 @@ class OutlookConnector:
 
                 all_emails.extend(emails)
             except Exception as e:
-                self.logger.error(f"Erreur dossier '{folder_name}': {e}")
+                self.logger.error(f"Erreur dossier '{folder_name}': {e}", exc_info=True)
 
         all_emails.sort(key=lambda x: x.get('received_date', ''), reverse=True)
+        self.logger.info(f"Total: {len(all_emails)} emails récupérés de tous les dossiers")
         return all_emails
 
-    def _get_emails_from_folder(self, folder_name: str, mark_as_read: bool, limit: int) -> List[Dict[str, Any]]:
+    def _get_emails_from_folder(self, folder_name: str, mark_as_read: bool, limit: int, only_unread: bool) -> List[Dict[str, Any]]:
         """Récupère les emails d'un dossier spécifique."""
         try:
             pythoncom.CoInitialize()
@@ -93,34 +102,61 @@ class OutlookConnector:
             namespace = outlook.GetNamespace("MAPI")
             inbox = namespace.GetDefaultFolder(6)
 
+            # Navigation vers le dossier
             folder = inbox
             for part in folder_name.split('/'):
                 folder = folder.Folders[part]
 
+            self.logger.info(f"Accès au dossier '{folder_name}', {folder.Items.Count} emails au total")
+
             emails = []
             items = folder.Items
-            items.Sort("[ReceivedTime]", True)
+            items.Sort("[ReceivedTime]", True)  # Tri par date décroissante
 
             count = 0
+            processed = 0
+
             for item in items:
+                processed += 1
+
+                # Limite de traitement
                 if limit and count >= limit:
                     break
 
-                if hasattr(item, 'UnRead') and item.UnRead:
+                # Vérifier si c'est un MailItem
+                if not hasattr(item, 'Subject'):
+                    continue
+
+                # Filtre : seulement les non lus OU tous les emails
+                if only_unread and hasattr(item, 'UnRead') and not item.UnRead:
+                    continue
+
+                try:
                     email_data = self._extract_email_data(item)
                     emails.append(email_data)
                     count += 1
 
-                    if mark_as_read:
+                    self.logger.debug(f"Email récupéré: {email_data.get('subject', 'Sans sujet')[:50]}")
+
+                    if mark_as_read and hasattr(item, 'UnRead'):
                         item.UnRead = False
                         item.Save()
 
+                except Exception as e:
+                    self.logger.warning(f"Erreur extraction email: {e}")
+                    continue
+
+            self.logger.info(f"Dossier '{folder_name}': {count} emails extraits sur {processed} traités")
             return emails
+
         except Exception as e:
-            self.logger.error(f"Erreur accès dossier {folder_name}: {e}")
+            self.logger.error(f"Erreur accès dossier {folder_name}: {e}", exc_info=True)
             return []
         finally:
-            pythoncom.CoUninitialize()
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                pass
 
     def _extract_email_data(self, item) -> Dict[str, Any]:
         """Extrait les données d'un email Outlook."""
