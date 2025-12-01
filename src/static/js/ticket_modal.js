@@ -24,6 +24,35 @@ function closeTicketModal() {
     currentTicket = null;
 }
 
+function getSenderColor(sender) {
+    // Générer une couleur cohérente pour chaque expéditeur
+    const colors = [
+        '#E3F2FD', // Bleu clair
+        '#F3E5F5', // Violet clair
+        '#E8F5E9', // Vert clair
+        '#FFF3E0', // Orange clair
+        '#FCE4EC', // Rose clair
+        '#E0F2F1', // Cyan clair
+    ];
+
+    // Hash simple du nom pour choisir une couleur
+    let hash = 0;
+    for (let i = 0; i < sender.length; i++) {
+        hash = sender.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+}
+
+function getSenderInitials(sender) {
+    // Extraire les initiales du nom
+    const words = sender.trim().split(/\s+/);
+    if (words.length >= 2) {
+        return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+    return sender.substring(0, 2).toUpperCase();
+}
+
 function renderEmailThread(ticket) {
     const messages = ticket.messages || [];
 
@@ -32,14 +61,25 @@ function renderEmailThread(ticket) {
     }
 
     // Afficher les messages dans l'ordre chronologique (plus ancien en haut)
-    return messages.reverse().map((msg, index) => `
-        <div class="chat-message ${index === messages.length - 1 ? 'latest' : ''}">
-            <div class="chat-message-content">
-                ${escapeHtml(msg).replace(/\n/g, '<br>')}
+    return messages.reverse().map((msg, index) => {
+        const sender = msg.sender || 'Inconnu';
+        const content = msg.content || msg;
+        const bgColor = getSenderColor(sender);
+        const initials = getSenderInitials(sender);
+        const isLatest = index === messages.length - 1;
+
+        return `
+        <div class="chat-message" style="background: ${bgColor}; ${isLatest ? 'border-left: 3px solid #2196F3;' : ''}">
+            <div class="chat-message-header">
+                <div class="chat-avatar">${initials}</div>
+                <div class="chat-sender">${escapeHtml(sender)}</div>
             </div>
-            ${index < messages.length - 1 ? '<div class="chat-separator"></div>' : ''}
+            <div class="chat-message-content">
+                ${escapeHtml(typeof content === 'string' ? content : JSON.stringify(content)).replace(/\n/g, '<br>')}
+            </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function renderTicketDetails(ticket) {

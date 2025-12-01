@@ -14,46 +14,73 @@ from utils.rate_limiter import rate_limit
 ticket_bp = Blueprint('tickets', __name__)
 
 def parse_email_thread(body: str) -> list:
-    """Parse le corps de l'email en messages séparés (comme une conversation)."""
+    """Parse le corps de l'email en messages séparés avec identification des expéditeurs."""
     if not body:
         return []
 
-    # Patterns de séparation d'emails (lignes "De:", "From:", etc.)
-    separator_patterns = [
-        r'^(?:De|From)\s*:\s*.+',
-        r'^Le .+ a écrit\s*:',
-        r'^On .+ wrote\s*:',
-        r'^_{5,}',  # Lignes de underscores
-        r'^-{5,}',  # Lignes de tirets
-    ]
+    # Patterns de séparation d'emails avec capture de l'expéditeur
+    separator_pattern = r'^(?:De|From)\s*:\s*(.+?)(?:\s*<[^>]+>)?$'
 
-    combined_pattern = '|'.join(f'({p})' for p in separator_patterns)
-
-    # Diviser le texte en messages
+    # Diviser le texte en sections
     messages = []
     current_message = []
+    current_sender = None
 
-    for line in body.split('\n'):
-        # Vérifier si c'est une ligne de séparation
-        if re.match(combined_pattern, line.strip(), re.MULTILINE):
-            # Sauvegarder le message précédent s'il existe
+    lines = body.split('\n')
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+
+        # Vérifier si c'est une ligne "De:" ou "From:"
+        match = re.match(separator_pattern, line.strip(), re.IGNORECASE)
+        if match:
+            # Sauvegarder le message précédent
             if current_message:
                 msg_text = '\n'.join(current_message).strip()
-                if msg_text and len(msg_text) > 5:  # Ignorer les messages trop courts
-                    messages.append(msg_text)
-                current_message = []
-        else:
-            current_message.append(line)
+                # Nettoyer les espaces excessifs
+                msg_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', msg_text)
+                if msg_text and len(msg_text) > 5:
+                    messages.append({
+                        'sender': current_sender or 'Inconnu',
+                        'content': msg_text
+                    })
+
+            # Nouveau message
+            current_sender = match.group(1).strip()
+            current_message = []
+
+            # Sauter les lignes d'en-tête (Envoyé:, À:, Objet:, etc.)
+            i += 1
+            while i < len(lines) and re.match(r'^(?:Envoyé|Sent|À|To|Objet|Subject|Cc)\s*:', lines[i].strip(), re.IGNORECASE):
+                i += 1
+            continue
+
+        # Ignorer les lignes de séparation
+        if re.match(r'^[_-]{5,}$', line.strip()):
+            i += 1
+            continue
+
+        current_message.append(line)
+        i += 1
 
     # Ajouter le dernier message
     if current_message:
         msg_text = '\n'.join(current_message).strip()
+        msg_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', msg_text)
         if msg_text and len(msg_text) > 5:
-            messages.append(msg_text)
+            messages.append({
+                'sender': current_sender or 'Expéditeur',
+                'content': msg_text
+            })
 
-    # Si aucun message parsé, retourner le corps entier
+    # Si aucun message parsé, retourner le corps entier sans expéditeur identifié
     if not messages:
-        messages = [body.strip()]
+        clean_body = re.sub(r'\n\s*\n\s*\n+', '\n\n', body.strip())
+        messages = [{
+            'sender': 'Message',
+            'content': clean_body
+        }]
 
     return messages
 
