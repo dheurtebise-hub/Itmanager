@@ -177,23 +177,35 @@ async function syncNow(initialImport = false) {
     if (icon) icon.innerHTML = '<span class="loading"></span>';
 
     try {
+        console.log('Début synchronisation, initialImport=', initialImport);
         const result = await api.syncNow(initialImport);
+        console.log('Résultat sync:', result);
 
         if (result.status === 'success') {
+            console.log('Rechargement des tickets...');
             await loadTickets();
+            console.log('Tickets rechargés, total affiché:', allTickets.length);
+
             await loadStats();
 
             const msg = initialImport
-                ? `Import initial: ${result.new_tickets} tickets créés (${result.emails_found} emails trouvés)`
-                : `Synchronisation: ${result.new_tickets} nouveaux tickets`;
+                ? `✅ Import initial réussi !\n${result.new_tickets} tickets créés\n${result.emails_found} emails analysés`
+                : `✅ Synchronisation réussie !\n${result.new_tickets} nouveaux tickets`;
 
             showNotification(msg, 'success');
+
+            // Si aucun ticket créé mais des emails trouvés, informer l'utilisateur
+            if (result.emails_found > 0 && result.new_tickets === 0) {
+                showNotification(`⚠️ ${result.emails_found} emails trouvés mais déjà importés`, 'warning');
+            }
         } else if (result.status === 'error') {
-            showNotification('Erreur: ' + result.message, 'error');
+            showNotification('❌ Erreur: ' + result.message, 'error');
+        } else if (result.status === 'already_syncing') {
+            showNotification('⏳ Synchronisation déjà en cours...', 'warning');
         }
     } catch (error) {
         console.error('Erreur sync:', error);
-        showNotification('Erreur lors de la synchronisation', 'error');
+        showNotification('❌ Erreur lors de la synchronisation', 'error');
     } finally {
         if (button) button.disabled = false;
         if (icon) icon.textContent = '🔄';
@@ -209,23 +221,21 @@ async function initialImport() {
 }
 
 function showNotification(message, type = 'info') {
-    // Créer une notification temporaire
+    // Créer une notification temporaire VISIBLE
     const notif = document.createElement('div');
-    notif.className = `status-message status-${type}`;
-    notif.style.position = 'fixed';
-    notif.style.top = '20px';
-    notif.style.right = '20px';
-    notif.style.zIndex = '9999';
-    notif.style.maxWidth = '400px';
+    notif.className = `sync-notification sync-${type}`;
     notif.textContent = message;
 
     document.body.appendChild(notif);
 
+    // Animation d'entrée
+    setTimeout(() => notif.classList.add('show'), 10);
+
+    // Fermeture automatique
     setTimeout(() => {
-        notif.style.transition = 'opacity 0.3s';
-        notif.style.opacity = '0';
+        notif.classList.remove('show');
         setTimeout(() => notif.remove(), 300);
-    }, 5000);
+    }, 8000); // 8 secondes au lieu de 5
 }
 
 // Stats

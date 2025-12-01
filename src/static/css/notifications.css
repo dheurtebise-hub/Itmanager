@@ -1,0 +1,57 @@
+/* Notifications de synchronisation - TRÈS VISIBLES */
+.sync-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 10000;
+    min-width: 350px;
+    max-width: 500px;
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.6;
+    white-space: pre-line;
+    transform: translateX(150%);
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    backdrop-filter: blur(10px);
+}
+
+.sync-notification.show {
+    transform: translateX(0);
+}
+
+.sync-success {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border-left: 6px solid #2e7d32;
+}
+
+.sync-error {
+    background: linear-gradient(135deg, #F44336 0%, #e53935 100%);
+    color: white;
+    border-left: 6px solid #c62828;
+}
+
+.sync-warning {
+    background: linear-gradient(135deg, #FF9800 0%, #fb8c00 100%);
+    color: white;
+    border-left: 6px solid #ef6c00;
+}
+
+.sync-info {
+    background: linear-gradient(135deg, #2196F3 0%, #1e88e5 100%);
+    color: white;
+    border-left: 6px solid #1565c0;
+}
+
+/* Animation pulse pour attirer l'attention */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.sync-notification.show {
+    animation: pulse 2s ease-in-out 1;
+}
