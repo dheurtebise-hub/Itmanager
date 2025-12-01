@@ -177,7 +177,7 @@ function renderTicketDetails(ticket) {
 
                 <div class="flex gap-2 mt-3">
                     <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
-                    ${ticket.status !== 'closed' ? `
+                    ${ticket.status !== 'resolved' && ticket.status !== 'closed' ? `
                         <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Résolu</button>
                     ` : ''}
                 </div>
@@ -227,24 +227,39 @@ async function getSuggestion(ticketId) {
 }
 
 async function resolveTicket(ticketId) {
-    const resolution = document.getElementById('ticketResolution')?.value;
+    const resolutionTextarea = document.getElementById('ticketResolution');
 
-    if (!resolution || resolution.trim() === '') {
-        alert('Veuillez entrer une résolution avant de marquer le ticket comme résolu');
+    if (!resolutionTextarea) {
+        console.error('Textarea de résolution introuvable');
+        alert('Erreur: champ de résolution introuvable');
         return;
     }
 
+    const resolution = resolutionTextarea.value;
+
+    if (!resolution || resolution.trim() === '') {
+        const confirm = window.confirm('Aucune résolution saisie. Voulez-vous marquer ce ticket comme résolu sans description de résolution ?');
+        if (!confirm) return;
+    }
+
     try {
-        await api.updateTicket(ticketId, {
-            status: 'resolved',
-            resolution: resolution.trim()
-        });
+        const updates = {
+            status: 'resolved'
+        };
+
+        if (resolution && resolution.trim()) {
+            updates.resolution = resolution.trim();
+        }
+
+        await api.updateTicket(ticketId, updates);
+        showNotification('Ticket marqué comme résolu', 'success');
 
         await loadTickets();
         closeTicketModal();
     } catch (error) {
         console.error('Error resolving ticket:', error);
-        alert('Erreur lors de la résolution du ticket');
+        showNotification('Erreur lors de la résolution du ticket', 'error');
+        alert(`Erreur: ${error.message || 'Impossible de résoudre le ticket'}`);
     }
 }
 
