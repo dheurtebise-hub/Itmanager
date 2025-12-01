@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS tickets (
     resolution TEXT,
     resolution_time_minutes INTEGER,
     ai_categorized BOOLEAN DEFAULT FALSE,
-    ai_confidence REAL
+    ai_confidence REAL,
+    has_attachments BOOLEAN DEFAULT FALSE,
+    importance INTEGER DEFAULT 0
 );
 
 -- Table de la base de connaissances
