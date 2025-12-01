@@ -13,6 +13,38 @@ from utils.rate_limiter import rate_limit
 
 ticket_bp = Blueprint('tickets', __name__)
 
+def clean_message_content(text: str) -> str:
+    """Nettoie le contenu d'un message en supprimant les espaces excessifs."""
+    if not text:
+        return text
+
+    # Supprimer les lignes qui ne contiennent que des espaces
+    lines = [line.rstrip() for line in text.split('\n')]
+
+    # Filtrer les lignes vides consécutives
+    cleaned_lines = []
+    previous_was_empty = False
+
+    for line in lines:
+        is_empty = len(line.strip()) == 0
+
+        # Garder la ligne si elle n'est pas vide, ou si c'est la première ligne vide
+        if not is_empty:
+            cleaned_lines.append(line)
+            previous_was_empty = False
+        elif not previous_was_empty:
+            # Garder une seule ligne vide maximum
+            cleaned_lines.append('')
+            previous_was_empty = True
+
+    # Rejoindre et enlever les espaces au début/fin
+    result = '\n'.join(cleaned_lines).strip()
+
+    # Supprimer les doubles sauts de ligne
+    result = re.sub(r'\n\n+', '\n', result)
+
+    return result
+
 def parse_email_thread(body: str) -> list:
     """Parse le corps de l'email en messages séparés avec identification des expéditeurs."""
     if not body:
@@ -38,8 +70,7 @@ def parse_email_thread(body: str) -> list:
             # Sauvegarder le message précédent
             if current_message:
                 msg_text = '\n'.join(current_message).strip()
-                # Nettoyer les espaces excessifs
-                msg_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', msg_text)
+                msg_text = clean_message_content(msg_text)
                 if msg_text and len(msg_text) > 5:
                     messages.append({
                         'sender': current_sender or 'Inconnu',
@@ -67,7 +98,7 @@ def parse_email_thread(body: str) -> list:
     # Ajouter le dernier message
     if current_message:
         msg_text = '\n'.join(current_message).strip()
-        msg_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', msg_text)
+        msg_text = clean_message_content(msg_text)
         if msg_text and len(msg_text) > 5:
             messages.append({
                 'sender': current_sender or 'Expéditeur',
@@ -76,7 +107,7 @@ def parse_email_thread(body: str) -> list:
 
     # Si aucun message parsé, retourner le corps entier sans expéditeur identifié
     if not messages:
-        clean_body = re.sub(r'\n\s*\n\s*\n+', '\n\n', body.strip())
+        clean_body = clean_message_content(body.strip())
         messages = [{
             'sender': 'Message',
             'content': clean_body

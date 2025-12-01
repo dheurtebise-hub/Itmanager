@@ -98,90 +98,100 @@ function renderTicketDetails(ticket) {
     ];
 
     return `
-        <h2>Ticket #${ticket.id}</h2>
-
-        <div class="form-group">
-            <label><strong>Sujet</strong></label>
-            <div>${escapeHtml(ticket.subject)}</div>
+        <div class="ticket-modal-header">
+            <h2>Ticket #${ticket.id}</h2>
         </div>
 
-        <div class="form-group">
-            <label><strong>De</strong></label>
-            <div>${escapeHtml(ticket.sender_name || ticket.sender_email)}</div>
-            <div class="form-help">${escapeHtml(ticket.sender_email)}</div>
-        </div>
+        <div class="ticket-modal-columns">
+            <!-- Colonne gauche: Métadonnées -->
+            <div class="ticket-metadata">
+                <div class="form-group">
+                    <label><strong>Sujet</strong></label>
+                    <div>${escapeHtml(ticket.subject)}</div>
+                </div>
 
-        <div class="form-group">
-            <label><strong>Reçu le</strong></label>
-            <div>${new Date(ticket.received_date).toLocaleString('fr-FR')}</div>
-        </div>
+                <div class="form-group">
+                    <label><strong>De</strong></label>
+                    <div>${escapeHtml(ticket.sender_name || ticket.sender_email)}</div>
+                    <div class="form-help">${escapeHtml(ticket.sender_email)}</div>
+                </div>
 
-        <div class="form-group">
-            <label><strong>Statut</strong></label>
-            <select id="ticketStatus" onchange="updateTicketField('status', this.value)">
-                ${statusOptions.map(opt =>
-                    `<option value="${opt.value}" ${ticket.status === opt.value ? 'selected' : ''}>${opt.label}</option>`
-                ).join('')}
-            </select>
-        </div>
+                <div class="form-group">
+                    <label><strong>Reçu le</strong></label>
+                    <div>${new Date(ticket.received_date).toLocaleString('fr-FR')}</div>
+                </div>
 
-        <div class="form-group">
-            <label><strong>Priorité</strong></label>
-            <select id="ticketPriority" onchange="updateTicketField('priority', this.value)">
-                ${priorityOptions.map(opt =>
-                    `<option value="${opt.value}" ${ticket.priority === opt.value ? 'selected' : ''}>${opt.label}</option>`
-                ).join('')}
-            </select>
-        </div>
+                <div class="form-group">
+                    <label><strong>Statut</strong></label>
+                    <select id="ticketStatus" onchange="updateTicketField('status', this.value)">
+                        ${statusOptions.map(opt =>
+                            `<option value="${opt.value}" ${ticket.status === opt.value ? 'selected' : ''}>${opt.label}</option>`
+                        ).join('')}
+                    </select>
+                </div>
 
-        ${ticket.category ? `
-        <div class="form-group">
-            <label><strong>Catégorie</strong></label>
-            <div>${escapeHtml(ticket.category)}</div>
-            ${ticket.ai_confidence ? `
-                <div class="form-help">Catégorisé par IA (confiance: ${Math.round(ticket.ai_confidence * 100)}%)</div>
-            ` : ''}
-        </div>
-        ` : ''}
+                <div class="form-group">
+                    <label><strong>Priorité</strong></label>
+                    <select id="ticketPriority" onchange="updateTicketField('priority', this.value)">
+                        ${priorityOptions.map(opt =>
+                            `<option value="${opt.value}" ${ticket.priority === opt.value ? 'selected' : ''}>${opt.label}</option>`
+                        ).join('')}
+                    </select>
+                </div>
 
-        ${ticket.summary ? `
-        <div class="form-group">
-            <label><strong>Résumé</strong></label>
-            <div>${escapeHtml(ticket.summary)}</div>
-        </div>
-        ` : ''}
+                ${ticket.category ? `
+                <div class="form-group">
+                    <label><strong>Catégorie</strong></label>
+                    <div>${escapeHtml(ticket.category)}</div>
+                    ${ticket.ai_confidence ? `
+                        <div class="form-help">Catégorisé par IA (${Math.round(ticket.ai_confidence * 100)}%)</div>
+                    ` : ''}
+                </div>
+                ` : ''}
 
-        <div class="form-group">
-            <label><strong>Conversation</strong></label>
-            <div class="email-thread-container">
-                ${renderEmailThread(ticket)}
+                ${ticket.summary ? `
+                <div class="form-group">
+                    <label><strong>Résumé</strong></label>
+                    <div class="summary-text">${escapeHtml(ticket.summary)}</div>
+                </div>
+                ` : ''}
+
+                ${ticket.resolution ? `
+                <div class="form-group">
+                    <label><strong>Résolution</strong></label>
+                    <textarea id="ticketResolution" rows="3" onchange="updateTicketField('resolution', this.value)">${escapeHtml(ticket.resolution)}</textarea>
+                </div>
+                ` : `
+                <div class="form-group">
+                    <label><strong>Résolution</strong></label>
+                    <textarea id="ticketResolution" rows="3" placeholder="Décrivez la résolution..." onchange="updateTicketField('resolution', this.value)"></textarea>
+                </div>
+                `}
+
+                <div class="form-group">
+                    <button class="btn btn-primary btn-sm" onclick="getSuggestion(${ticket.id})">
+                        🤖 Suggestion IA
+                    </button>
+                    <div id="suggestionResult" class="mt-2"></div>
+                </div>
+
+                <div class="flex gap-2 mt-3">
+                    <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
+                    ${ticket.status !== 'closed' ? `
+                        <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Résolu</button>
+                    ` : ''}
+                </div>
             </div>
-        </div>
 
-        ${ticket.resolution ? `
-        <div class="form-group">
-            <label><strong>Résolution</strong></label>
-            <textarea id="ticketResolution" rows="4" onchange="updateTicketField('resolution', this.value)">${escapeHtml(ticket.resolution)}</textarea>
-        </div>
-        ` : `
-        <div class="form-group">
-            <label><strong>Résolution</strong></label>
-            <textarea id="ticketResolution" rows="4" placeholder="Décrivez la résolution..." onchange="updateTicketField('resolution', this.value)"></textarea>
-        </div>
-        `}
-
-        <div class="form-group">
-            <button class="btn btn-primary" onclick="getSuggestion(${ticket.id})">
-                🤖 Obtenir une suggestion IA
-            </button>
-            <div id="suggestionResult" class="mt-2"></div>
-        </div>
-
-        <div class="flex gap-2 mt-3">
-            <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
-            ${ticket.status !== 'closed' ? `
-                <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Marquer comme résolu</button>
-            ` : ''}
+            <!-- Colonne droite: Conversation -->
+            <div class="ticket-conversation">
+                <div class="conversation-header">
+                    <label><strong>Conversation</strong></label>
+                </div>
+                <div class="email-thread-container">
+                    ${renderEmailThread(ticket)}
+                </div>
+            </div>
         </div>
     `;
 }
