@@ -39,6 +39,10 @@ class SLAService:
         if isinstance(received, str):
             received = datetime.fromisoformat(received)
 
+        # Ensure timezone-naive datetime for SLA calculations
+        if received.tzinfo is not None:
+            received = received.replace(tzinfo=None)
+
         return {
             'response_deadline': received + timedelta(minutes=sla['response_time']),
             'resolution_deadline': received + timedelta(minutes=sla['resolution_time'])
