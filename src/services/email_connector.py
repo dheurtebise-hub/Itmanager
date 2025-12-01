@@ -158,14 +158,36 @@ class OutlookConnector:
             except:
                 pass
 
+    def _clean_email_body(self, body: str) -> str:
+        """Nettoie le corps de l'email en retirant les signatures et éléments indésirables."""
+        if not body:
+            return body
+
+        import re
+
+        # Supprimer les URLs Letsignit
+        body = re.sub(r'<https://cloud\.letsignit\.com/[^>]+>', '', body)
+        body = re.sub(r'https://cloud\.letsignit\.com/\S+', '', body)
+
+        # Supprimer les lignes vides multiples
+        body = re.sub(r'\n\s*\n\s*\n+', '\n\n', body)
+
+        # Supprimer les espaces en fin de lignes
+        body = re.sub(r' +\n', '\n', body)
+
+        return body.strip()
+
     def _extract_email_data(self, item) -> Dict[str, Any]:
         """Extrait les données d'un email Outlook."""
+        raw_body = item.Body or ''
+        cleaned_body = self._clean_email_body(raw_body)
+
         return {
             'message_id': item.EntryID,
             'subject': item.Subject or '(Sans sujet)',
             'sender_email': self._get_sender_email(item),
             'sender_name': item.SenderName or '',
-            'body': (item.Body or '')[:5000],
+            'body': cleaned_body[:5000],
             'html_body': (item.HTMLBody or '')[:10000] if hasattr(item, 'HTMLBody') else None,
             'received_date': item.ReceivedTime.isoformat() if item.ReceivedTime else None,
             'has_attachments': item.Attachments.Count > 0,
