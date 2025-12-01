@@ -24,6 +24,24 @@ function closeTicketModal() {
     currentTicket = null;
 }
 
+function renderEmailThread(ticket) {
+    const messages = ticket.messages || [];
+
+    if (messages.length === 0) {
+        return '<div class="chat-message">Pas de contenu</div>';
+    }
+
+    // Afficher les messages dans l'ordre chronologique (plus ancien en haut)
+    return messages.reverse().map((msg, index) => `
+        <div class="chat-message ${index === messages.length - 1 ? 'latest' : ''}">
+            <div class="chat-message-content">
+                ${escapeHtml(msg).replace(/\n/g, '<br>')}
+            </div>
+            ${index < messages.length - 1 ? '<div class="chat-separator"></div>' : ''}
+        </div>
+    `).join('');
+}
+
 function renderTicketDetails(ticket) {
     const statusOptions = [
         { value: 'new', label: '📥 Nouveau' },
@@ -94,9 +112,9 @@ function renderTicketDetails(ticket) {
         ` : ''}
 
         <div class="form-group">
-            <label><strong>Message</strong></label>
-            <div style="max-height: 200px; overflow-y: auto; padding: 1rem; background: var(--bg-tertiary); border-radius: 4px;">
-                ${escapeHtml(ticket.body || 'Pas de contenu')}
+            <label><strong>Conversation</strong></label>
+            <div class="email-thread-container">
+                ${renderEmailThread(ticket)}
             </div>
         </div>
 

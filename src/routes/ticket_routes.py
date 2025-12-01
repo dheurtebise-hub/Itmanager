@@ -2,6 +2,7 @@
 Routes API pour les tickets
 """
 
+import re
 from flask import Blueprint, request, jsonify
 from models.database import db
 from models.ticket import Ticket
@@ -11,6 +12,50 @@ from services.sync_service import sync_service
 from utils.rate_limiter import rate_limit
 
 ticket_bp = Blueprint('tickets', __name__)
+
+def parse_email_thread(body: str) -> list:
+    """Parse le corps de l'email en messages séparés (comme une conversation)."""
+    if not body:
+        return []
+
+    # Patterns de séparation d'emails (lignes "De:", "From:", etc.)
+    separator_patterns = [
+        r'^(?:De|From)\s*:\s*.+',
+        r'^Le .+ a écrit\s*:',
+        r'^On .+ wrote\s*:',
+        r'^_{5,}',  # Lignes de underscores
+        r'^-{5,}',  # Lignes de tirets
+    ]
+
+    combined_pattern = '|'.join(f'({p})' for p in separator_patterns)
+
+    # Diviser le texte en messages
+    messages = []
+    current_message = []
+
+    for line in body.split('\n'):
+        # Vérifier si c'est une ligne de séparation
+        if re.match(combined_pattern, line.strip(), re.MULTILINE):
+            # Sauvegarder le message précédent s'il existe
+            if current_message:
+                msg_text = '\n'.join(current_message).strip()
+                if msg_text and len(msg_text) > 5:  # Ignorer les messages trop courts
+                    messages.append(msg_text)
+                current_message = []
+        else:
+            current_message.append(line)
+
+    # Ajouter le dernier message
+    if current_message:
+        msg_text = '\n'.join(current_message).strip()
+        if msg_text and len(msg_text) > 5:
+            messages.append(msg_text)
+
+    # Si aucun message parsé, retourner le corps entier
+    if not messages:
+        messages = [body.strip()]
+
+    return messages
 
 @ticket_bp.route('/api/tickets', methods=['GET'])
 @rate_limit()
@@ -85,6 +130,13 @@ def get_ticket(ticket_id):
         return jsonify({'error': 'Ticket non trouvé'}), 404
 
     ticket['sla_status'] = sla_service.check_sla_status(ticket)
+
+    # Parser le corps en messages séparés pour affichage type conversation
+    if ticket.get('body'):
+        ticket['messages'] = parse_email_thread(ticket['body'])
+    else:
+        ticket['messages'] = []
+
     return jsonify(ticket)
 
 @ticket_bp.route('/api/tickets/<int:ticket_id>', methods=['PUT'])
