@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration Outlook - IT Ticket Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="setup-container">
+    <div class="setup-card">
+        <div class="setup-header">
+            <div class="setup-icon">📧</div>
+            <h1 class="setup-title">Configuration Outlook</h1>
+            <p class="setup-subtitle">Sélectionnez les dossiers à surveiller</p>
+        </div>
+
+        <div class="setup-progress">
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Bienvenue</div>
+            </div>
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">API</div>
+            </div>
+            <div class="progress-step active">
+                <div class="progress-circle">3</div>
+                <div class="progress-label">Outlook</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">4</div>
+                <div class="progress-label">Personnalisation</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">5</div>
+                <div class="progress-label">Terminé</div>
+            </div>
+        </div>
+
+        <div class="setup-content">
+            <p>Sélectionnez les dossiers Outlook contenant vos tickets de support :</p>
+
+            <div id="foldersList" class="folders-list mt-2">
+                <div class="text-center" style="padding: 2rem;">
+                    <div class="loading"></div>
+                    <div style="margin-top: 1rem;">Chargement des dossiers...</div>
+                </div>
+            </div>
+
+            <div id="statusMessage" class="mt-2"></div>
+        </div>
+
+        <div class="setup-actions">
+            <a href="/setup/api" class="btn btn-back">← Retour</a>
+            <button class="btn btn-primary" onclick="saveOutlookConfig()">Continuer →</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedFolders = [];
+
+async function loadFolders() {
+    try {
+        const response = await fetch('/setup/outlook/folders');
+        const folders = await response.json();
+
+        const list = document.getElementById('foldersList');
+        list.innerHTML = folders.map(f => `
+            <div class="folder-item">
+                <input type="checkbox" id="folder-${f.name}" value="${f.name}" onchange="toggleFolder('${f.name}')">
+                <div class="folder-info">
+                    <div class="folder-name">${f.name}</div>
+                    <div class="folder-count">${f.count} emails</div>
+                </div>
+            </div>
+        `).join('');
+
+        // Pré-sélectionner "Support" si disponible
+        const supportFolder = folders.find(f => f.name === 'Support');
+        if (supportFolder) {
+            document.getElementById('folder-Support').checked = true;
+            selectedFolders.push({name: 'Support', enabled: true, priority_boost: 0});
+        }
+    } catch (error) {
+        document.getElementById('foldersList').innerHTML =
+            '<div class="status-message status-error">Impossible de charger les dossiers Outlook. Assurez-vous qu\'Outlook est installé et configuré.</div>';
+    }
+}
+
+function toggleFolder(folderName) {
+    const checkbox = document.getElementById(`folder-${folderName}`);
+    if (checkbox.checked) {
+        selectedFolders.push({name: folderName, enabled: true, priority_boost: 0});
+    } else {
+        selectedFolders = selectedFolders.filter(f => f.name !== folderName);
+    }
+}
+
+async function saveOutlookConfig() {
+    if (selectedFolders.length === 0) {
+        document.getElementById('statusMessage').innerHTML =
+            '<div class="status-message status-error">Veuillez sélectionner au moins un dossier</div>';
+        return;
+    }
+
+    try {
+        const response = await fetch('/setup/outlook', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ folders: selectedFolders })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = '/setup/personalization';
+        } else {
+            document.getElementById('statusMessage').innerHTML =
+                '<div class="status-message status-error">' + result.message + '</div>';
+        }
+    } catch (error) {
+        document.getElementById('statusMessage').innerHTML =
+            '<div class="status-message status-error">Erreur de connexion</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadFolders);
+</script>
+{% endblock %}

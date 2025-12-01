@@ -1,0 +1,83 @@
+"""
+Routes pour la configuration de l'application
+"""
+
+from flask import Blueprint, request, jsonify, render_template
+from config import config
+from services.backup_service import backup_service
+from models.database import db
+
+config_bp = Blueprint('config', __name__)
+
+@config_bp.route('/settings')
+def settings_page():
+    """Page des paramètres."""
+    return render_template('settings.html')
+
+@config_bp.route('/api/config', methods=['GET'])
+def get_config():
+    """Récupère la configuration actuelle."""
+    safe_config = {k: v for k, v in config._config.items() if k != 'api_key'}
+    safe_config['has_api_key'] = config.has_api_key()
+    return jsonify(safe_config)
+
+@config_bp.route('/api/config', methods=['PUT'])
+def update_config():
+    """Met à jour la configuration."""
+    data = request.json
+
+    # Champs autorisés
+    allowed = [
+        'sync_interval_minutes', 'auto_sync', 'theme',
+        'notifications_enabled', 'sla_enabled', 'outlook_folders'
+    ]
+
+    for key in allowed:
+        if key in data:
+            config.set(key, data[key])
+
+    if config.save():
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Erreur sauvegarde'}), 500
+
+@config_bp.route('/api/backups', methods=['GET'])
+def list_backups():
+    """Liste les backups disponibles."""
+    backups = backup_service.list_backups()
+    return jsonify(backups)
+
+@config_bp.route('/api/backups', methods=['POST'])
+def create_backup():
+    """Crée un nouveau backup."""
+    backup_path = backup_service.create_backup()
+    if backup_path:
+        return jsonify({'success': True, 'path': str(backup_path)})
+    else:
+        return jsonify({'error': 'Erreur création backup'}), 500
+
+@config_bp.route('/api/categories', methods=['GET'])
+def get_categories():
+    """Récupère toutes les catégories."""
+    categories = db.fetchall("SELECT * FROM categories WHERE is_active = TRUE ORDER BY order_index")
+    return jsonify(categories)
+
+@config_bp.route('/api/categories', methods=['POST'])
+def create_category():
+    """Crée une nouvelle catégorie."""
+    data = request.json
+
+    required = ['name', 'color', 'icon']
+    if not all(k in data for k in required):
+        return jsonify({'error': 'Champs manquants'}), 400
+
+    try:
+        cat_id = db.insert('categories', {
+            'name': data['name'],
+            'color': data['color'],
+            'icon': data['icon'],
+            'order_index': data.get('order_index', 99)
+        })
+        return jsonify({'success': True, 'id': cat_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

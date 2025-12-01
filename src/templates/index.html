@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}IT Ticket Manager - Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/kanban.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="app-header">
+    <div class="app-title">
+        <span>🎫</span>
+        <span>IT Ticket Manager</span>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="syncNow()">
+            <span id="syncIcon">🔄</span>
+            <span>Synchroniser</span>
+        </button>
+        <div class="theme-toggle" onclick="ThemeManager.toggle()"></div>
+        <a href="/settings" class="btn btn-secondary">⚙️ Paramètres</a>
+    </div>
+</div>
+
+<div class="kanban-container">
+    <!-- Toolbar -->
+    <div class="kanban-toolbar">
+        <div class="toolbar-left">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Rechercher un ticket..." onkeyup="searchTickets()">
+            </div>
+            <select id="categoryFilter" onchange="filterTickets()">
+                <option value="">Toutes les catégories</option>
+            </select>
+            <select id="priorityFilter" onchange="filterTickets()">
+                <option value="">Toutes les priorités</option>
+                <option value="urgent">🔴 Urgent</option>
+                <option value="high">🟠 Élevée</option>
+                <option value="medium">🟡 Moyenne</option>
+                <option value="low">🟢 Faible</option>
+            </select>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary" onclick="exportTickets('csv')">📊 Export CSV</button>
+            <button class="btn btn-secondary" onclick="showStats()">📈 Statistiques</button>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="kanban-board">
+        <!-- Nouveau -->
+        <div class="kanban-column column-new" data-status="new">
+            <div class="column-header">
+                <div class="column-title">
+                    <span>📥</span>
+                    <span>Nouveau</span>
+                </div>
+                <span class="column-count" id="count-new">0</span>
+            </div>
+            <div class="tickets-container" id="tickets-new">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div>Aucun nouveau ticket</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- En cours -->
+        <div class="kanban-column column-in-progress" data-status="in_progress">
+            <div class="column-header">
+                <div class="column-title">
+                    <span>⚙️</span>
+                    <span>En cours</span>
+                </div>
+                <span class="column-count" id="count-in_progress">0</span>
+            </div>
+            <div class="tickets-container" id="tickets-in_progress">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <div>Aucun ticket en cours</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Résolu -->
+        <div class="kanban-column column-resolved" data-status="resolved">
+            <div class="column-header">
+                <div class="column-title">
+                    <span>✅</span>
+                    <span>Résolu</span>
+                </div>
+                <span class="column-count" id="count-resolved">0</span>
+            </div>
+            <div class="tickets-container" id="tickets-resolved">
+                <div class="empty-state">
+                    <div class="empty-state-icon">✨</div>
+                    <div>Aucun ticket résolu</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fermé -->
+        <div class="kanban-column column-closed" data-status="closed">
+            <div class="column-header">
+                <div class="column-title">
+                    <span>🔒</span>
+                    <span>Fermé</span>
+                </div>
+                <span class="column-count" id="count-closed">0</span>
+            </div>
+            <div class="tickets-container" id="tickets-closed">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📦</div>
+                    <div>Aucun ticket fermé</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <span class="stat-label">Aujourd'hui</span>
+        <span class="stat-value" id="stat-today">0</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Cette semaine</span>
+        <span class="stat-value" id="stat-week">0</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Taux SLA</span>
+        <span class="stat-value" id="stat-sla">-</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-label">Coût API ce mois</span>
+        <span class="stat-value" id="stat-cost">-</span>
+    </div>
+</div>
+
+<!-- Modal Détails Ticket -->
+<div class="modal" id="ticketModal">
+    <div class="modal-overlay" onclick="closeTicketModal()"></div>
+    <div class="modal-content">
+        <div id="ticketDetails"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kanban.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ticket_modal.js') }}"></script>
+<script src="{{ url_for('static', filename='js/keyboard_shortcuts.js') }}"></script>
+<script>
+// Charger les tickets au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadTickets();
+    loadStats();
+    loadCategories();
+});
+</script>
+{% endblock %}

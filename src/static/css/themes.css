@@ -1,0 +1,106 @@
+/* SYSTÈME DE THÈMES */
+
+:root, [data-theme="light"] {
+    --bg-primary: #FAFAFA;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F4F5F7;
+    --bg-card: #FFFFFF;
+    --bg-hover: #F0F0F0;
+
+    --text-primary: #1C1B1F;
+    --text-secondary: #49454F;
+    --text-tertiary: #79747E;
+
+    --border-color: #E0E0E0;
+
+    --accent-primary: #1976D2;
+    --accent-primary-dark: #1565C0;
+
+    --status-success: #4CAF50;
+    --status-warning: #FF9800;
+    --status-error: #F44336;
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
+    --shadow-md: 0 3px 6px rgba(0,0,0,0.16);
+
+    --kanban-new: #E3F2FD;
+    --kanban-progress: #FFF3E0;
+    --kanban-resolved: #E8F5E9;
+    --kanban-closed: #F3E5F5;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #121212;
+    --bg-secondary: #1E1E1E;
+    --bg-tertiary: #2D2D2D;
+    --bg-card: #252525;
+    --bg-hover: #333333;
+
+    --text-primary: #E1E1E1;
+    --text-secondary: #B0B0B0;
+    --text-tertiary: #808080;
+
+    --border-color: #404040;
+
+    --accent-primary: #64B5F6;
+    --accent-primary-dark: #42A5F5;
+
+    --status-success: #81C784;
+    --status-warning: #FFB74D;
+    --status-error: #E57373;
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 3px 6px rgba(0,0,0,0.5);
+
+    --kanban-new: #1E3A5F;
+    --kanban-progress: #3E2723;
+    --kanban-resolved: #1B5E20;
+    --kanban-closed: #4A148C;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.app-header {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-dark));
+}
+
+.card, .ticket-card, .modal-content {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+}
+
+input, select, textarea {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.theme-toggle {
+    width: 50px;
+    height: 26px;
+    background: var(--bg-tertiary);
+    border-radius: 13px;
+    cursor: pointer;
+    border: 2px solid var(--border-color);
+    position: relative;
+}
+
+.theme-toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+[data-theme="dark"] .theme-toggle::after {
+    transform: translateX(24px);
+}

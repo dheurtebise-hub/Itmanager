@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration API - IT Ticket Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="setup-container">
+    <div class="setup-card">
+        <div class="setup-header">
+            <div class="setup-icon">🔑</div>
+            <h1 class="setup-title">Configuration de l'API Claude</h1>
+            <p class="setup-subtitle">Connectez votre clé API Anthropic</p>
+        </div>
+
+        <div class="setup-progress">
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Bienvenue</div>
+            </div>
+            <div class="progress-step active">
+                <div class="progress-circle">2</div>
+                <div class="progress-label">API</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">3</div>
+                <div class="progress-label">Outlook</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">4</div>
+                <div class="progress-label">Personnalisation</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">5</div>
+                <div class="progress-label">Terminé</div>
+            </div>
+        </div>
+
+        <div class="setup-content">
+            <div class="form-group">
+                <label for="apiKey">Clé API Claude *</label>
+                <input type="password" id="apiKey" placeholder="sk-ant-..." required>
+                <div class="form-help">
+                    Votre clé commence par "sk-ant-". Vous pouvez l'obtenir sur
+                    <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a>
+                </div>
+            </div>
+
+            <div id="statusMessage"></div>
+
+            <div class="status-message status-info">
+                <strong>💰 Budget recommandé :</strong><br>
+                Pour ~1000 emails/mois : 3-5€/mois<br>
+                Modèles utilisés : Haiku (catégorisation) + Sonnet (suggestions)
+            </div>
+        </div>
+
+        <div class="setup-actions">
+            <a href="/setup" class="btn btn-back">← Retour</a>
+            <button class="btn btn-primary" onclick="testAndSaveAPI()">Tester et continuer →</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function testAndSaveAPI() {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    const statusDiv = document.getElementById('statusMessage');
+
+    if (!apiKey.startsWith('sk-ant-')) {
+        statusDiv.innerHTML = '<div class="status-message status-error">La clé doit commencer par "sk-ant-"</div>';
+        return;
+    }
+
+    statusDiv.innerHTML = '<div class="status-message status-info">Test de connexion en cours...</div>';
+
+    try {
+        const response = await fetch('/setup/api', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ api_key: apiKey })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            statusDiv.innerHTML = '<div class="status-message status-success">✅ ' + result.message + '</div>';
+            setTimeout(() => window.location.href = '/setup/outlook', 1000);
+        } else {
+            statusDiv.innerHTML = '<div class="status-message status-error">❌ ' + result.message + '</div>';
+        }
+    } catch (error) {
+        statusDiv.innerHTML = '<div class="status-message status-error">Erreur de connexion</div>';
+    }
+}
+</script>
+{% endblock %}

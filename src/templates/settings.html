@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres - IT Ticket Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="app-header">
+    <div class="app-title">
+        <span>⚙️</span>
+        <span>Paramètres</span>
+    </div>
+    <div class="header-actions">
+        <a href="/" class="btn btn-secondary">← Retour au dashboard</a>
+    </div>
+</div>
+
+<div class="setup-container">
+    <div class="setup-card">
+        <h2 class="card-title">Configuration</h2>
+
+        <div class="setup-content">
+            <!-- Synchronisation -->
+            <div class="form-group">
+                <label>Synchronisation automatique</label>
+                <select id="syncInterval">
+                    <option value="5">Toutes les 5 minutes</option>
+                    <option value="15" selected>Toutes les 15 minutes</option>
+                    <option value="30">Toutes les 30 minutes</option>
+                    <option value="60">Toutes les heures</option>
+                </select>
+            </div>
+
+            <!-- Notifications -->
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="notificationsEnabled" checked>
+                    Activer les notifications Windows
+                </label>
+            </div>
+
+            <!-- SLA -->
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="slaEnabled" checked>
+                    Activer la gestion des SLA
+                </label>
+            </div>
+
+            <!-- Thème -->
+            <div class="form-group">
+                <label>Thème</label>
+                <select id="themeSelect" onchange="changeTheme()">
+                    <option value="light">Clair</option>
+                    <option value="dark">Sombre</option>
+                </select>
+            </div>
+
+            <!-- Backups -->
+            <div class="form-group">
+                <h3>Sauvegardes</h3>
+                <button class="btn btn-primary" onclick="createBackup()">Créer une sauvegarde</button>
+                <div id="backupsList" class="mt-2"></div>
+            </div>
+
+            <!-- Actions -->
+            <div class="setup-actions">
+                <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
+                <button class="btn btn-secondary" onclick="window.location.reload()">Annuler</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function saveSettings() {
+    const settings = {
+        sync_interval_minutes: parseInt(document.getElementById('syncInterval').value),
+        notifications_enabled: document.getElementById('notificationsEnabled').checked,
+        sla_enabled: document.getElementById('slaEnabled').checked,
+        theme: document.getElementById('themeSelect').value
+    };
+
+    const response = await fetch('/api/config', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    });
+
+    if (response.ok) {
+        alert('Paramètres enregistrés avec succès!');
+    } else {
+        alert('Erreur lors de la sauvegarde');
+    }
+}
+
+function changeTheme() {
+    const theme = document.getElementById('themeSelect').value;
+    ThemeManager.setTheme(theme);
+}
+
+async function createBackup() {
+    const response = await fetch('/api/backups', { method: 'POST' });
+    if (response.ok) {
+        alert('Sauvegarde créée avec succès!');
+        loadBackups();
+    } else {
+        alert('Erreur lors de la création de la sauvegarde');
+    }
+}
+
+async function loadBackups() {
+    const response = await fetch('/api/backups');
+    const backups = await response.json();
+
+    const list = document.getElementById('backupsList');
+    list.innerHTML = backups.map(b => `
+        <div class="folder-item">
+            <div class="folder-info">
+                <div class="folder-name">${b.name}</div>
+                <div class="folder-count">${b.size_mb} MB - ${new Date(b.created_at).toLocaleString()}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Charger la config au démarrage
+document.addEventListener('DOMContentLoaded', async () => {
+    const response = await fetch('/api/config');
+    const config = await response.json();
+
+    document.getElementById('syncInterval').value = config.sync_interval_minutes;
+    document.getElementById('notificationsEnabled').checked = config.notifications_enabled;
+    document.getElementById('slaEnabled').checked = config.sla_enabled;
+    document.getElementById('themeSelect').value = config.theme;
+
+    loadBackups();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration terminée - IT Ticket Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="setup-container">
+    <div class="setup-card">
+        <div class="setup-header">
+            <div class="setup-icon">🎉</div>
+            <h1 class="setup-title">Configuration terminée !</h1>
+            <p class="setup-subtitle">Votre IT Ticket Manager est prêt à l'emploi</p>
+        </div>
+
+        <div class="setup-progress">
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Bienvenue</div>
+            </div>
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">API</div>
+            </div>
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Outlook</div>
+            </div>
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Personnalisation</div>
+            </div>
+            <div class="progress-step active">
+                <div class="progress-circle">5</div>
+                <div class="progress-label">Terminé</div>
+            </div>
+        </div>
+
+        <div class="setup-content">
+            <h2>✅ Tout est prêt !</h2>
+
+            <div class="status-message status-success" style="margin: 1.5rem 0;">
+                <strong>Configuration réussie</strong><br>
+                ✓ API Claude connectée<br>
+                ✓ Outlook configuré<br>
+                ✓ Préférences enregistrées
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="autoImport" checked>
+                    Importer automatiquement les emails existants au démarrage
+                </label>
+                <div class="form-help">
+                    Cette opération peut prendre quelques minutes selon le nombre d'emails.
+                </div>
+            </div>
+
+            <h3 style="margin-top: 2rem;">📚 Raccourcis clavier utiles</h3>
+            <table style="width: 100%; margin-top: 1rem;">
+                <tr><td><kbd>Ctrl+N</kbd></td><td>Synchroniser</td></tr>
+                <tr><td><kbd>Ctrl+F</kbd></td><td>Rechercher</td></tr>
+                <tr><td><kbd>Ctrl+Shift+L</kbd></td><td>Changer de thème</td></tr>
+                <tr><td><kbd>Ctrl+/</kbd></td><td>Aide</td></tr>
+                <tr><td><kbd>1-4</kbd></td><td>Naviguer entre les colonnes</td></tr>
+            </table>
+        </div>
+
+        <div class="setup-actions">
+            <div></div>
+            <button class="btn btn-primary" onclick="finishSetup()">Accéder au dashboard →</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function finishSetup() {
+    const config = {
+        auto_import_on_start: document.getElementById('autoImport').checked
+    };
+
+    try {
+        const response = await fetch('/setup/complete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = result.redirect;
+        }
+    } catch (error) {
+        alert('Erreur lors de la finalisation');
+    }
+}
+</script>
+{% endblock %}

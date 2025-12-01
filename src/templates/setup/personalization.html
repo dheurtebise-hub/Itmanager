@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Personnalisation - IT Ticket Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="setup-container">
+    <div class="setup-card">
+        <div class="setup-header">
+            <div class="setup-icon">🎨</div>
+            <h1 class="setup-title">Personnalisation</h1>
+            <p class="setup-subtitle">Configurez vos préférences</p>
+        </div>
+
+        <div class="setup-progress">
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Bienvenue</div>
+            </div>
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">API</div>
+            </div>
+            <div class="progress-step completed">
+                <div class="progress-circle">✓</div>
+                <div class="progress-label">Outlook</div>
+            </div>
+            <div class="progress-step active">
+                <div class="progress-circle">4</div>
+                <div class="progress-label">Personnalisation</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">5</div>
+                <div class="progress-label">Terminé</div>
+            </div>
+        </div>
+
+        <div class="setup-content">
+            <div class="form-group">
+                <label>Thème</label>
+                <select id="theme">
+                    <option value="light">Clair</option>
+                    <option value="dark">Sombre</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="notificationsEnabled" checked>
+                    Activer les notifications Windows
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="slaEnabled" checked>
+                    Activer la gestion des SLA (délais de réponse)
+                </label>
+            </div>
+
+            <div id="statusMessage"></div>
+        </div>
+
+        <div class="setup-actions">
+            <a href="/setup/outlook" class="btn btn-back">← Retour</a>
+            <button class="btn btn-primary" onclick="savePersonalization()">Continuer →</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function savePersonalization() {
+    const config = {
+        theme: document.getElementById('theme').value,
+        notifications_enabled: document.getElementById('notificationsEnabled').checked,
+        sla_enabled: document.getElementById('slaEnabled').checked
+    };
+
+    try {
+        const response = await fetch('/setup/personalization', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(config)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            window.location.href = '/setup/complete';
+        } else {
+            document.getElementById('statusMessage').innerHTML =
+                '<div class="status-message status-error">Erreur lors de la sauvegarde</div>';
+        }
+    } catch (error) {
+        document.getElementById('statusMessage').innerHTML =
+            '<div class="status-message status-error">Erreur de connexion</div>';
+    }
+}
+</script>
+{% endblock %}

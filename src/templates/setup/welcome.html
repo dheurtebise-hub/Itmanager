@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Bienvenue - IT Ticket Manager{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="setup-container">
+    <div class="setup-card">
+        <div class="setup-header">
+            <div class="setup-icon">🎫</div>
+            <h1 class="setup-title">Bienvenue dans IT Ticket Manager</h1>
+            <p class="setup-subtitle">Configurons votre application en quelques étapes simples</p>
+        </div>
+
+        <div class="setup-progress">
+            <div class="progress-step active">
+                <div class="progress-circle">1</div>
+                <div class="progress-label">Bienvenue</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">2</div>
+                <div class="progress-label">API</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">3</div>
+                <div class="progress-label">Outlook</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">4</div>
+                <div class="progress-label">Personnalisation</div>
+            </div>
+            <div class="progress-step">
+                <div class="progress-circle">5</div>
+                <div class="progress-label">Terminé</div>
+            </div>
+        </div>
+
+        <div class="setup-content">
+            <h2>🚀 Fonctionnalités principales</h2>
+            <ul style="line-height: 2; margin: 1.5rem 0;">
+                <li>✅ Import automatique depuis Outlook</li>
+                <li>✅ Catégorisation intelligente via IA (Claude)</li>
+                <li>✅ Interface Kanban intuitive</li>
+                <li>✅ Suggestions de résolution basées sur l'historique</li>
+                <li>✅ Gestion des SLA avec alertes</li>
+                <li>✅ Export CSV/Excel</li>
+                <li>✅ Mode sombre</li>
+            </ul>
+
+            <div class="status-message status-info">
+                <strong>📝 Ce dont vous aurez besoin :</strong><br>
+                - Une clé API Anthropic (Claude)<br>
+                - Microsoft Outlook installé et configuré<br>
+                - Environ 5 minutes
+            </div>
+        </div>
+
+        <div class="setup-actions">
+            <div></div>
+            <a href="/setup/api" class="btn btn-primary">Commencer →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
