@@ -235,6 +235,7 @@ input:focus, select:focus, textarea:focus {
     gap: 2rem;
     flex: 1;
     overflow: hidden;
+    min-height: 0;
 }
 
 .ticket-metadata {
@@ -251,6 +252,7 @@ input:focus, select:focus, textarea:focus {
     border-left: 2px solid var(--border-color);
     padding-left: 2rem;
     overflow: hidden;
+    min-height: 0;
 }
 
 .conversation-header {
@@ -261,6 +263,7 @@ input:focus, select:focus, textarea:focus {
 .ticket-conversation .email-thread-container {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
 }
 
 .summary-text {

@@ -36,11 +36,15 @@ class SLAService:
         sla = self._sla_config.get(priority, self._sla_config.get('medium'))
 
         received = ticket.get('received_date')
-        if isinstance(received, str):
+
+        # Si pas de date, utiliser maintenant
+        if not received:
+            received = datetime.now()
+        elif isinstance(received, str):
             received = datetime.fromisoformat(received)
 
         # Ensure timezone-naive datetime for SLA calculations
-        if received.tzinfo is not None:
+        if hasattr(received, 'tzinfo') and received.tzinfo is not None:
             received = received.replace(tzinfo=None)
 
         return {
