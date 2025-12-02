@@ -36,7 +36,7 @@ function renderCategoryFilter() {
 }
 
 function renderTickets() {
-    const statuses = ['new', 'in_progress', 'resolved', 'closed'];
+    const statuses = ['new', 'in_progress', 'resolved'];
 
     statuses.forEach(status => {
         const container = document.getElementById(`tickets-${status}`);
@@ -391,8 +391,7 @@ function getStatusLabel(status) {
     const labels = {
         'new': 'Nouveau',
         'in_progress': 'En cours',
-        'resolved': 'Résolu',
-        'closed': 'Fermé'
+        'resolved': 'Résolu'
     };
     return labels[status] || status;
 }

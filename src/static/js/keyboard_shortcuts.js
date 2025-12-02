@@ -35,8 +35,8 @@ const KeyboardShortcuts = {
         this.register('ctrl+shift+l', () => ThemeManager.toggle(), 'Thème');
         this.register('ctrl+/', () => this.showHelp(), 'Aide');
 
-        ['1','2','3','4'].forEach((n, i) => {
-            const statuses = ['new', 'in_progress', 'resolved', 'closed'];
+        ['1','2','3'].forEach((n, i) => {
+            const statuses = ['new', 'in_progress', 'resolved'];
             this.register(n, () => focusColumn(statuses[i]), `Colonne ${n}`);
         });
     },

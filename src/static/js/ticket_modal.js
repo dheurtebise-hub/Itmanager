@@ -108,8 +108,7 @@ function renderTicketDetails(ticket) {
     const statusOptions = [
         { value: 'new', label: '📥 Nouveau' },
         { value: 'in_progress', label: '⚙️ En cours' },
-        { value: 'resolved', label: '✅ Résolu' },
-        { value: 'closed', label: '🔒 Fermé' }
+        { value: 'resolved', label: '✅ Résolu' }
     ];
 
     const priorityOptions = [
@@ -192,8 +191,8 @@ function renderTicketDetails(ticket) {
 
                 <div class="flex gap-2 mt-3">
                     <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
-                    ${ticket.status !== 'resolved' && ticket.status !== 'closed' ? `
-                        <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Résolu</button>
+                    ${ticket.status !== 'resolved' ? `
+                        <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Marquer comme résolu</button>
                     ` : ''}
                 </div>
             </div>
