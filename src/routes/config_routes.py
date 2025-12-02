@@ -5,6 +5,7 @@ Routes pour la configuration de l'application
 from flask import Blueprint, request, jsonify, render_template
 from config import config
 from services.backup_service import backup_service
+from services.email_connector import OutlookConnector
 from models.database import db
 
 config_bp = Blueprint('config', __name__)
@@ -79,5 +80,23 @@ def create_category():
             'order_index': data.get('order_index', 99)
         })
         return jsonify({'success': True, 'id': cat_id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@config_bp.route('/api/outlook/folders', methods=['GET'])
+def list_outlook_folders():
+    """Liste les dossiers Outlook disponibles."""
+    try:
+        connector = OutlookConnector(config._config)
+        folders = connector.list_available_folders()
+        current_config = config.get('outlook_folders', [{'name': 'Inbox', 'enabled': True}])
+
+        # Enrichir avec la config actuelle
+        for folder in folders:
+            existing = next((f for f in current_config if f['name'] == folder['name']), None)
+            folder['enabled'] = existing.get('enabled', False) if existing else False
+            folder['priority_boost'] = existing.get('priority_boost', 0) if existing else 0
+
+        return jsonify(folders)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

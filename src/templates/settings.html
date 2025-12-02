@@ -49,6 +49,13 @@
                 </label>
             </div>
 
+            <!-- Dossiers Outlook -->
+            <div class="form-group">
+                <h3>📁 Dossiers Outlook à surveiller</h3>
+                <button class="btn btn-secondary" onclick="loadOutlookFolders()" style="margin-bottom: 1rem;">Charger les dossiers disponibles</button>
+                <div id="outlookFoldersList" class="mt-2"></div>
+            </div>
+
             <!-- Thème -->
             <div class="form-group">
                 <label>Thème</label>
@@ -78,12 +85,19 @@
 
 {% block extra_js %}
 <script>
+let outlookFolders = [];
+
 async function saveSettings() {
     const settings = {
         sync_interval_minutes: parseInt(document.getElementById('syncInterval').value),
         notifications_enabled: document.getElementById('notificationsEnabled').checked,
         sla_enabled: document.getElementById('slaEnabled').checked,
-        theme: document.getElementById('themeSelect').value
+        theme: document.getElementById('themeSelect').value,
+        outlook_folders: outlookFolders.map(f => ({
+            name: f.name,
+            enabled: f.enabled,
+            priority_boost: f.priority_boost || 0
+        }))
     };
 
     const response = await fetch('/api/config', {
@@ -129,6 +143,67 @@ async function loadBackups() {
     `).join('');
 }
 
+async function loadOutlookFolders() {
+    try {
+        const response = await fetch('/api/outlook/folders');
+        if (!response.ok) {
+            alert('Erreur lors du chargement des dossiers Outlook. Vérifiez qu\'Outlook est ouvert.');
+            return;
+        }
+
+        outlookFolders = await response.json();
+        displayOutlookFolders();
+    } catch (error) {
+        alert('Impossible de charger les dossiers: ' + error.message);
+    }
+}
+
+function displayOutlookFolders() {
+    const list = document.getElementById('outlookFoldersList');
+    if (outlookFolders.length === 0) {
+        list.innerHTML = '<p style="color: #666;">Aucun dossier chargé. Cliquez sur "Charger les dossiers disponibles".</p>';
+        return;
+    }
+
+    list.innerHTML = outlookFolders.map((folder, index) => `
+        <div class="folder-item" style="border: 1px solid #e0e0e0; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox"
+                               ${folder.enabled ? 'checked' : ''}
+                               onchange="toggleFolder(${index})">
+                        <strong>📁 ${folder.name}</strong>
+                    </label>
+                    <div style="font-size: 0.875rem; color: #666; margin-left: 1.5rem;">
+                        ${folder.count} emails
+                    </div>
+                </div>
+                ${folder.enabled ? `
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="font-size: 0.875rem;">Boost priorité:</label>
+                        <select onchange="changePriorityBoost(${index}, this.value)"
+                                style="padding: 0.25rem;">
+                            <option value="0" ${folder.priority_boost === 0 ? 'selected' : ''}>Aucun</option>
+                            <option value="1" ${folder.priority_boost === 1 ? 'selected' : ''}>+1 (Medium → High)</option>
+                            <option value="2" ${folder.priority_boost === 2 ? 'selected' : ''}>+2 (Medium → Urgent)</option>
+                        </select>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleFolder(index) {
+    outlookFolders[index].enabled = !outlookFolders[index].enabled;
+    displayOutlookFolders();
+}
+
+function changePriorityBoost(index, value) {
+    outlookFolders[index].priority_boost = parseInt(value);
+}
+
 // Charger la config au démarrage
 document.addEventListener('DOMContentLoaded', async () => {
     const response = await fetch('/api/config');
@@ -140,6 +215,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('themeSelect').value = config.theme;
 
     loadBackups();
+
+    // Afficher message pour charger les dossiers Outlook
+    displayOutlookFolders();
 });
 </script>
 {% endblock %}
