@@ -31,12 +31,19 @@ class Ticket:
     @staticmethod
     def update(ticket_id: int, data: Dict[str, Any]) -> bool:
         """Met à jour un ticket."""
+        import logging
+        logger = logging.getLogger(__name__)
+
         data['updated_at'] = datetime.now().isoformat()
+
+        # Récupérer le ticket actuel pour comparaison
+        ticket = Ticket.get_by_id(ticket_id)
+        if not ticket:
+            return False
 
         # Si le statut passe à 'resolved', enregistrer la date
         if data.get('status') == 'resolved':
-            ticket = Ticket.get_by_id(ticket_id)
-            if ticket and ticket['status'] != 'resolved':
+            if ticket['status'] != 'resolved':
                 data['resolved_at'] = datetime.now().isoformat()
 
                 # Calculer le temps de résolution
@@ -52,6 +59,19 @@ class Ticket:
 
                     resolution_time = (resolved - received).total_seconds() / 60
                     data['resolution_time_minutes'] = int(resolution_time)
+
+        # Déplacer l'email automatiquement si le statut change
+        if data.get('status') and data['status'] != ticket['status'] and ticket.get('message_id'):
+            try:
+                from services.outlook_folder_manager import folder_manager
+                success, msg = folder_manager.move_ticket_email(ticket['message_id'], data['status'])
+                if success:
+                    logger.info(f"Ticket #{ticket_id}: email déplacé automatiquement - {msg}")
+                else:
+                    logger.warning(f"Ticket #{ticket_id}: échec déplacement email - {msg}")
+            except Exception as e:
+                logger.error(f"Ticket #{ticket_id}: erreur déplacement email - {e}")
+                # Ne pas bloquer la mise à jour du ticket si le déplacement échoue
 
         return db.update('tickets', data, "id = ?", (ticket_id,)) > 0
 
