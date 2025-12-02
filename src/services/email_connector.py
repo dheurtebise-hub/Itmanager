@@ -16,6 +16,10 @@ class OutlookConnector:
 
     def test_connection(self) -> Tuple[bool, str]:
         """Teste la connexion à Outlook."""
+        outlook = None
+        namespace = None
+        inbox = None
+        folder = None
         try:
             pythoncom.CoInitialize()
             outlook = win32com.client.Dispatch("Outlook.Application")
@@ -31,24 +35,39 @@ class OutlookConnector:
                         return True, f"✓ Connexion réussie. {count} emails dans '{folder_name}'"
                     except:
                         return False, f"✗ Le dossier '{folder_name}' n'existe pas"
+                    finally:
+                        if folder is not None:
+                            try:
+                                del folder
+                            except:
+                                pass
+                            folder = None
 
             return False, "✗ Aucun dossier configuré"
         except Exception as e:
             return False, f"✗ Impossible de se connecter à Outlook : {str(e)}"
         finally:
-            # Libérer les objets COM
-            try:
-                del inbox
-            except:
-                pass
-            try:
-                del namespace
-            except:
-                pass
-            try:
-                del outlook
-            except:
-                pass
+            # Libérer les objets COM dans le bon ordre
+            if folder is not None:
+                try:
+                    del folder
+                except:
+                    pass
+            if inbox is not None:
+                try:
+                    del inbox
+                except:
+                    pass
+            if namespace is not None:
+                try:
+                    del namespace
+                except:
+                    pass
+            if outlook is not None:
+                try:
+                    del outlook
+                except:
+                    pass
             try:
                 pythoncom.CoUninitialize()
             except:
@@ -56,6 +75,9 @@ class OutlookConnector:
 
     def list_available_folders(self) -> List[Dict[str, Any]]:
         """Liste tous les dossiers disponibles."""
+        outlook = None
+        namespace = None
+        inbox = None
         try:
             pythoncom.CoInitialize()
             outlook = win32com.client.Dispatch("Outlook.Application")
@@ -63,30 +85,46 @@ class OutlookConnector:
             inbox = namespace.GetDefaultFolder(6)
 
             folders = []
-            for folder in inbox.Folders:
-                folders.append({
-                    'name': folder.Name,
-                    'count': folder.Items.Count,
-                    'has_subfolders': folder.Folders.Count > 0
-                })
+            folder_count = inbox.Folders.Count
+
+            for i in range(folder_count):
+                folder = None
+                try:
+                    # Accès par index (1-based en COM)
+                    folder = inbox.Folders[i + 1]
+                    folders.append({
+                        'name': folder.Name,
+                        'count': folder.Items.Count,
+                        'has_subfolders': folder.Folders.Count > 0
+                    })
+                finally:
+                    if folder is not None:
+                        try:
+                            del folder
+                        except:
+                            pass
+
             return folders
         except Exception as e:
             self.logger.error(f"Erreur liste dossiers: {e}")
             return []
         finally:
             # Libérer les objets COM
-            try:
-                del inbox
-            except:
-                pass
-            try:
-                del namespace
-            except:
-                pass
-            try:
-                del outlook
-            except:
-                pass
+            if inbox is not None:
+                try:
+                    del inbox
+                except:
+                    pass
+            if namespace is not None:
+                try:
+                    del namespace
+                except:
+                    pass
+            if outlook is not None:
+                try:
+                    del outlook
+                except:
+                    pass
             try:
                 pythoncom.CoUninitialize()
             except:
@@ -148,22 +186,26 @@ class OutlookConnector:
             count = 0
             processed = 0
 
-            for item in items:
+            for i in range(items.Count):
                 processed += 1
 
                 # Limite de traitement
                 if limit and count >= limit:
                     break
 
-                # Vérifier si c'est un MailItem
-                if not hasattr(item, 'Subject'):
-                    continue
-
-                # Filtre : seulement les non lus OU tous les emails
-                if only_unread and hasattr(item, 'UnRead') and not item.UnRead:
-                    continue
-
+                # Récupérer l'item par index (1-based en COM)
+                item = None
                 try:
+                    item = items[i + 1]
+
+                    # Vérifier si c'est un MailItem
+                    if not hasattr(item, 'Subject'):
+                        continue
+
+                    # Filtre : seulement les non lus OU tous les emails
+                    if only_unread and hasattr(item, 'UnRead') and not item.UnRead:
+                        continue
+
                     email_data = self._extract_email_data(item)
                     emails.append(email_data)
                     count += 1
@@ -177,6 +219,13 @@ class OutlookConnector:
                 except Exception as e:
                     self.logger.warning(f"Erreur extraction email: {e}")
                     continue
+                finally:
+                    # CRITIQUE: Libérer explicitement chaque objet COM item après usage
+                    if item is not None:
+                        try:
+                            del item
+                        except:
+                            pass
 
             self.logger.info(f"Dossier '{folder_name}': {count} emails extraits sur {processed} traités")
             return emails
@@ -310,11 +359,28 @@ class OutlookConnector:
 
     def _get_sender_email(self, item) -> str:
         """Extrait l'email de l'expéditeur."""
+        sender = None
+        exchange_user = None
         try:
             if item.SenderEmailType == "EX":
                 sender = item.Sender
                 if sender:
-                    return sender.GetExchangeUser().PrimarySmtpAddress
+                    exchange_user = sender.GetExchangeUser()
+                    if exchange_user:
+                        email = exchange_user.PrimarySmtpAddress
+                        return email
             return item.SenderEmailAddress or ''
         except:
             return item.SenderEmailAddress or ''
+        finally:
+            # Libérer les objets COM créés
+            if exchange_user is not None:
+                try:
+                    del exchange_user
+                except:
+                    pass
+            if sender is not None:
+                try:
+                    del sender
+                except:
+                    pass
