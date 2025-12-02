@@ -170,13 +170,6 @@ function renderTicketDetails(ticket) {
                 </div>
                 ` : ''}
 
-                <div class="form-group">
-                    <button class="btn btn-primary btn-sm" onclick="getSuggestion(${ticket.id})">
-                        🤖 Suggestion IA
-                    </button>
-                    <div id="suggestionResult" class="mt-2"></div>
-                </div>
-
                 <div class="flex gap-2 mt-3">
                     <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
                     ${ticket.status !== 'resolved' ? `
@@ -208,23 +201,6 @@ async function updateTicketField(field, value) {
     } catch (error) {
         console.error('Error updating ticket:', error);
         alert('Erreur lors de la mise à jour');
-    }
-}
-
-async function getSuggestion(ticketId) {
-    const resultDiv = document.getElementById('suggestionResult');
-    resultDiv.innerHTML = '<div class="loading"></div> Génération de la suggestion...';
-
-    try {
-        const data = await api.getSuggestion(ticketId);
-        resultDiv.innerHTML = `
-            <div class="card" style="background: var(--bg-tertiary); white-space: pre-wrap;">
-                ${escapeHtml(data.suggestion)}
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error getting suggestion:', error);
-        resultDiv.innerHTML = '<div class="status-message status-error">Erreur lors de la génération de la suggestion</div>';
     }
 }
 

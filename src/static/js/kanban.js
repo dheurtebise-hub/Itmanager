@@ -69,8 +69,8 @@ function createTicketCard(ticket) {
     const timeAgo = formatTimeAgo(ticket.received_date);
     const notUserRequestClass = ticket.is_not_user_request ? ' not-user-request' : '';
 
-    // Bouton pour marquer comme non-demande utilisateur
-    const notUserRequestButton = (ticket.status !== 'resolved' && !ticket.is_not_user_request) ?
+    // Bouton pour marquer comme non-demande utilisateur (visible sauf si déjà marqué)
+    const notUserRequestButton = !ticket.is_not_user_request ?
         `<button class="btn-not-user-request" onclick="event.stopPropagation(); markAsNotUserRequestFromCard(${ticket.id})" title="Ce ticket n'est pas une demande utilisateur">🚫</button>` : '';
 
     return `
