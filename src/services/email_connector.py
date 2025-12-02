@@ -36,7 +36,23 @@ class OutlookConnector:
         except Exception as e:
             return False, f"✗ Impossible de se connecter à Outlook : {str(e)}"
         finally:
-            pythoncom.CoUninitialize()
+            # Libérer les objets COM
+            try:
+                del inbox
+            except:
+                pass
+            try:
+                del namespace
+            except:
+                pass
+            try:
+                del outlook
+            except:
+                pass
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                pass
 
     def list_available_folders(self) -> List[Dict[str, Any]]:
         """Liste tous les dossiers disponibles."""
@@ -58,7 +74,23 @@ class OutlookConnector:
             self.logger.error(f"Erreur liste dossiers: {e}")
             return []
         finally:
-            pythoncom.CoUninitialize()
+            # Libérer les objets COM
+            try:
+                del inbox
+            except:
+                pass
+            try:
+                del namespace
+            except:
+                pass
+            try:
+                del outlook
+            except:
+                pass
+            try:
+                pythoncom.CoUninitialize()
+            except:
+                pass
 
     def get_new_emails(self, mark_as_read: bool = False, limit: int = None, only_unread: bool = False) -> List[Dict[str, Any]]:
         """Récupère les nouveaux emails de tous les dossiers activés.
@@ -153,6 +185,27 @@ class OutlookConnector:
             self.logger.error(f"Erreur accès dossier {folder_name}: {e}", exc_info=True)
             return []
         finally:
+            # Libérer explicitement tous les objets COM avant CoUninitialize
+            try:
+                del items
+            except:
+                pass
+            try:
+                del folder
+            except:
+                pass
+            try:
+                del inbox
+            except:
+                pass
+            try:
+                del namespace
+            except:
+                pass
+            try:
+                del outlook
+            except:
+                pass
             try:
                 pythoncom.CoUninitialize()
             except:
