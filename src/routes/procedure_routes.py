@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @procedure_bp.route('/api/procedures/suggestions/<int:ticket_id>', methods=['GET'])
-@rate_limit(max_calls=60, period=60)
+@rate_limit()
 def get_procedure_suggestions(ticket_id):
     """Récupère les suggestions de procédures pour un ticket."""
     try:
@@ -33,7 +33,7 @@ def get_procedure_suggestions(ticket_id):
 
 
 @procedure_bp.route('/api/procedures/create', methods=['POST'])
-@rate_limit(max_calls=10, period=60)
+@rate_limit()
 def create_procedure():
     """Crée une nouvelle procédure basée sur un ticket."""
     try:
@@ -55,7 +55,7 @@ def create_procedure():
 
 
 @procedure_bp.route('/api/procedures/feedback', methods=['POST'])
-@rate_limit(max_calls=30, period=60)
+@rate_limit()
 def submit_procedure_feedback():
     """Enregistre un feedback pour une procédure."""
     try:
@@ -86,7 +86,7 @@ def submit_procedure_feedback():
 
 
 @procedure_bp.route('/api/procedures', methods=['GET'])
-@rate_limit(max_calls=60, period=60)
+@rate_limit()
 def get_all_procedures():
     """Récupère toutes les procédures actives."""
     try:
@@ -102,7 +102,7 @@ def get_all_procedures():
 
 
 @procedure_bp.route('/api/procedures/<int:procedure_id>', methods=['GET'])
-@rate_limit(max_calls=60, period=60)
+@rate_limit()
 def get_procedure(procedure_id):
     """Récupère une procédure par son ID."""
     try:
@@ -120,7 +120,7 @@ def get_procedure(procedure_id):
 
 
 @procedure_bp.route('/api/procedures/<int:procedure_id>', methods=['PUT'])
-@rate_limit(max_calls=30, period=60)
+@rate_limit()
 def update_procedure(procedure_id):
     """Met à jour une procédure."""
     try:
@@ -152,7 +152,7 @@ def update_procedure(procedure_id):
 
 
 @procedure_bp.route('/api/procedures/<int:procedure_id>', methods=['DELETE'])
-@rate_limit(max_calls=10, period=60)
+@rate_limit()
 def delete_procedure(procedure_id):
     """Désactive une procédure."""
     try:
