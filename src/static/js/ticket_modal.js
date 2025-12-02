@@ -56,30 +56,56 @@ function getSenderInitials(sender) {
 function renderEmailThread(ticket) {
     const messages = ticket.messages || [];
 
-    if (messages.length === 0) {
-        return '<div class="chat-message">Pas de contenu</div>';
-    }
+    // Récupérer la demande initiale (dernier message = le plus récent)
+    const initialRequest = messages.length > 0 ? messages[messages.length - 1] : null;
+    const aiSummary = ticket.summary;
 
-    // Afficher les messages dans l'ordre chronologique (plus ancien en haut)
-    return messages.reverse().map((msg, index) => {
-        const sender = msg.sender || 'Inconnu';
-        const content = msg.content || msg;
-        const bgColor = getSenderColor(sender);
+    let html = '';
+
+    // Afficher la demande initiale
+    if (initialRequest) {
+        const sender = initialRequest.sender || ticket.sender_name || 'Demandeur';
+        const content = initialRequest.content || initialRequest;
+        const bgColor = '#E3F2FD'; // Bleu clair pour la demande
         const initials = getSenderInitials(sender);
-        const isLatest = index === messages.length - 1;
 
-        return `
-        <div class="chat-message" style="background: ${bgColor}; ${isLatest ? 'border-left: 3px solid #2196F3;' : ''}">
-            <div class="chat-message-header">
-                <div class="chat-avatar">${initials}</div>
-                <div class="chat-sender">${escapeHtml(sender)}</div>
-            </div>
-            <div class="chat-message-content">
-                ${escapeHtml(typeof content === 'string' ? content : JSON.stringify(content)).replace(/\n/g, '<br>')}
+        html += `
+        <div class="request-section">
+            <div class="section-label">📩 Demande initiale</div>
+            <div class="chat-message" style="background: ${bgColor}; border-left: 3px solid #2196F3;">
+                <div class="chat-message-header">
+                    <div class="chat-avatar">${initials}</div>
+                    <div class="chat-sender">${escapeHtml(sender)}</div>
+                </div>
+                <div class="chat-message-content">
+                    ${escapeHtml(typeof content === 'string' ? content : JSON.stringify(content)).replace(/\n/g, '<br>')}
+                </div>
             </div>
         </div>
-    `;
-    }).join('');
+        `;
+    } else {
+        html += '<div class="chat-message">Pas de contenu</div>';
+    }
+
+    // Afficher le résumé IA si disponible
+    if (aiSummary) {
+        html += `
+        <div class="request-section">
+            <div class="section-label">🤖 Reformulation IA</div>
+            <div class="chat-message ai-reformulation" style="background: #F3E5F5; border-left: 3px solid #9C27B0;">
+                <div class="chat-message-header">
+                    <div class="chat-avatar">🤖</div>
+                    <div class="chat-sender">Assistant IA</div>
+                </div>
+                <div class="chat-message-content">
+                    ${escapeHtml(aiSummary).replace(/\n/g, '<br>')}
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
+    return html;
 }
 
 function renderTicketDetails(ticket) {
@@ -146,13 +172,6 @@ function renderTicketDetails(ticket) {
                     ${ticket.ai_confidence ? `
                         <div class="form-help">Catégorisé par IA (${Math.round(ticket.ai_confidence * 100)}%)</div>
                     ` : ''}
-                </div>
-                ` : ''}
-
-                ${ticket.summary ? `
-                <div class="form-group">
-                    <label><strong>Résumé</strong></label>
-                    <div class="summary-text">${escapeHtml(ticket.summary)}</div>
                 </div>
                 ` : ''}
 

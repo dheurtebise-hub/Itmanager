@@ -360,3 +360,27 @@
 .kanban-column.drag-over {
     animation: pulse 1.5s infinite;
 }
+
+/* REQUEST SECTIONS */
+.request-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    padding-left: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ai-reformulation {
+    font-style: italic;
+}
+
+.ai-reformulation .chat-message-content {
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
