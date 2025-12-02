@@ -83,9 +83,85 @@
 
             <!-- Backups -->
             <div class="form-group">
-                <h3>Sauvegardes</h3>
+                <h3>💾 Sauvegardes</h3>
                 <button class="btn btn-primary" onclick="createBackup()">Créer une sauvegarde</button>
                 <div id="backupsList" class="mt-2"></div>
+            </div>
+
+            <!-- Import/Export -->
+            <div class="form-group">
+                <h3>📦 Import / Export</h3>
+                <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
+                    Exportez ou importez vos données pour les sauvegarder ou les transférer vers une autre installation.
+                </p>
+
+                <!-- Export -->
+                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h4 style="margin-bottom: 0.75rem;">📤 Export</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <button class="btn btn-primary" onclick="exportDatabase()">
+                            💾 Base de données complète
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportProcedures()">
+                            📋 Procédures (JSON)
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportTickets()">
+                            🎫 Tickets (CSV)
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportConfig()">
+                            ⚙️ Configuration (JSON)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Import -->
+                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                    <h4 style="margin-bottom: 0.75rem;">📥 Import</h4>
+
+                    <!-- Import Base de données -->
+                    <div style="margin-bottom: 1rem;">
+                        <label class="btn btn-warning" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <span>💾 Importer une base de données</span>
+                            <input type="file" id="importDatabaseFile" accept=".db,.sqlite,.sqlite3" style="display: none;" onchange="importDatabase(this.files[0])">
+                        </label>
+                        <p style="font-size: 0.8rem; color: #f57c00; margin-top: 0.5rem;">
+                            ⚠️ Attention : remplacera toutes les données existantes !
+                        </p>
+                    </div>
+
+                    <!-- Import Procédures -->
+                    <div style="margin-bottom: 1rem;">
+                        <label class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <span>📋 Importer des procédures</span>
+                            <input type="file" id="importProceduresFile" accept=".json" style="display: none;" onchange="importProcedures(this.files[0])">
+                        </label>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                            Format JSON attendu
+                        </p>
+                    </div>
+
+                    <!-- Import Tickets -->
+                    <div style="margin-bottom: 1rem;">
+                        <label class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <span>🎫 Importer des tickets</span>
+                            <input type="file" id="importTicketsFile" accept=".csv,.json" style="display: none;" onchange="importTickets(this.files[0])">
+                        </label>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                            Format CSV ou JSON
+                        </p>
+                    </div>
+
+                    <!-- Import Configuration -->
+                    <div>
+                        <label class="btn btn-secondary" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <span>⚙️ Importer une configuration</span>
+                            <input type="file" id="importConfigFile" accept=".json" style="display: none;" onchange="importConfig(this.files[0])">
+                        </label>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                            Format JSON
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- Actions -->
@@ -313,5 +389,217 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Charger l'aperçu de l'archivage
     previewArchive();
 });
+
+// ============================================
+// FONCTIONS IMPORT/EXPORT
+// ============================================
+
+// Export Database
+async function exportDatabase() {
+    try {
+        const response = await fetch('/api/export/database');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `itmanager_database_${new Date().toISOString().split('T')[0]}.db`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        alert('✅ Base de données exportée avec succès !');
+    } catch (error) {
+        alert('❌ Erreur lors de l\'export : ' + error.message);
+    }
+}
+
+// Export Procedures
+async function exportProcedures() {
+    try {
+        const response = await fetch('/api/export/procedures');
+        const procedures = await response.json();
+        const blob = new Blob([JSON.stringify(procedures, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `procedures_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        alert(`✅ ${procedures.length} procédure(s) exportée(s) avec succès !`);
+    } catch (error) {
+        alert('❌ Erreur lors de l\'export : ' + error.message);
+    }
+}
+
+// Export Tickets
+async function exportTickets() {
+    try {
+        const response = await fetch('/api/export/tickets?format=csv');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tickets_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        alert('✅ Tickets exportés avec succès !');
+    } catch (error) {
+        alert('❌ Erreur lors de l\'export : ' + error.message);
+    }
+}
+
+// Export Config
+async function exportConfig() {
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `config_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        alert('✅ Configuration exportée avec succès !');
+    } catch (error) {
+        alert('❌ Erreur lors de l\'export : ' + error.message);
+    }
+}
+
+// Import Database
+async function importDatabase(file) {
+    if (!file) return;
+
+    if (!confirm('⚠️ ATTENTION !\n\nL\'import va REMPLACER toutes les données existantes (tickets, procédures, configuration, etc.).\n\nÊtes-vous sûr de vouloir continuer ?')) {
+        document.getElementById('importDatabaseFile').value = '';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/import/database', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('✅ ' + result.message + '\n\nL\'application va se recharger...');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            alert('❌ Erreur : ' + result.error);
+        }
+    } catch (error) {
+        alert('❌ Erreur lors de l\'import : ' + error.message);
+    }
+
+    document.getElementById('importDatabaseFile').value = '';
+}
+
+// Import Procedures
+async function importProcedures(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const procedures = JSON.parse(e.target.result);
+
+            if (!Array.isArray(procedures)) {
+                alert('❌ Format invalide : le fichier doit contenir un tableau de procédures');
+                return;
+            }
+
+            const response = await fetch('/api/import/procedures', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ procedures })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(`✅ ${result.imported} procédure(s) importée(s) avec succès !`);
+            } else {
+                alert('❌ Erreur : ' + result.error);
+            }
+        } catch (error) {
+            alert('❌ Erreur lors de l\'import : ' + error.message);
+        }
+    };
+
+    reader.readAsText(file);
+    document.getElementById('importProceduresFile').value = '';
+}
+
+// Import Tickets
+async function importTickets(file) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/import/tickets', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(`✅ ${result.imported} ticket(s) importé(s) avec succès !`);
+        } else {
+            alert('❌ Erreur : ' + result.error);
+        }
+    } catch (error) {
+        alert('❌ Erreur lors de l\'import : ' + error.message);
+    }
+
+    document.getElementById('importTicketsFile').value = '';
+}
+
+// Import Config
+async function importConfig(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const config = JSON.parse(e.target.result);
+
+            if (!confirm('⚠️ Importer cette configuration ?\n\nCela remplacera vos paramètres actuels.')) {
+                return;
+            }
+
+            const response = await fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+
+            if (response.ok) {
+                alert('✅ Configuration importée avec succès !\n\nL\'application va se recharger...');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                alert('❌ Erreur lors de l\'import de la configuration');
+            }
+        } catch (error) {
+            alert('❌ Erreur lors de l\'import : ' + error.message);
+        }
+    };
+
+    reader.readAsText(file);
+    document.getElementById('importConfigFile').value = '';
+}
 </script>
 {% endblock %}

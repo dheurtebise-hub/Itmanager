@@ -13,6 +13,7 @@ from routes.setup_routes import setup_bp
 from routes.export_routes import export_bp
 from routes.config_routes import config_bp
 from routes.procedure_routes import procedure_bp
+from routes.import_export_routes import import_export_bp
 
 def create_app():
     """Factory pour créer l'application Flask."""
@@ -34,6 +35,7 @@ def create_app():
     csrf.exempt(setup_bp)
     csrf.exempt(config_bp)
     csrf.exempt(procedure_bp)
+    csrf.exempt(import_export_bp)
 
     # Enregistrer les blueprints
     app.register_blueprint(ticket_bp)
@@ -41,6 +43,7 @@ def create_app():
     app.register_blueprint(export_bp)
     app.register_blueprint(config_bp)
     app.register_blueprint(procedure_bp)
+    app.register_blueprint(import_export_bp)
 
     # Routes principales
     @app.route('/')
