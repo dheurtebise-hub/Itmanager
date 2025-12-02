@@ -166,6 +166,12 @@ class OutlookConnector:
 
     def _get_emails_from_folder(self, folder_name: str, mark_as_read: bool, limit: int, only_unread: bool) -> List[Dict[str, Any]]:
         """Récupère les emails d'un dossier spécifique."""
+        outlook = None
+        namespace = None
+        inbox = None
+        folder = None
+        items = None
+
         try:
             pythoncom.CoInitialize()
             outlook = win32com.client.Dispatch("Outlook.Application")
@@ -175,49 +181,67 @@ class OutlookConnector:
             # Navigation vers le dossier
             folder = inbox
             for part in folder_name.split('/'):
+                self.logger.debug(f"Navigation vers sous-dossier: {part}")
                 folder = folder.Folders[part]
 
-            self.logger.info(f"Accès au dossier '{folder_name}', {folder.Items.Count} emails au total")
+            total_items = folder.Items.Count
+            self.logger.info(f"Accès au dossier '{folder_name}', {total_items} emails au total")
+
+            if total_items == 0:
+                self.logger.info(f"Dossier '{folder_name}' vide, aucun email à traiter")
+                return []
 
             emails = []
             items = folder.Items
-            items.Sort("[ReceivedTime]", True)  # Tri par date décroissante
+
+            # Tri avec gestion d'erreur
+            try:
+                items.Sort("[ReceivedTime]", True)
+                self.logger.debug(f"Tri des emails par date effectué")
+            except Exception as e:
+                self.logger.warning(f"Impossible de trier les emails: {e}, utilisation de l'ordre par défaut")
 
             count = 0
             processed = 0
+            items_count = items.Count
 
-            for i in range(items.Count):
-                processed += 1
+            self.logger.debug(f"Début traitement de {items_count} emails (limit={limit}, only_unread={only_unread})")
 
+            for i in range(items_count):
                 # Limite de traitement
                 if limit and count >= limit:
+                    self.logger.debug(f"Limite de {limit} emails atteinte, arrêt")
                     break
 
                 # Récupérer l'item par index (1-based en COM)
                 item = None
                 try:
+                    processed += 1
                     item = items[i + 1]
 
                     # Vérifier si c'est un MailItem
                     if not hasattr(item, 'Subject'):
+                        self.logger.debug(f"Item {i+1} ignoré (pas un MailItem)")
                         continue
 
                     # Filtre : seulement les non lus OU tous les emails
                     if only_unread and hasattr(item, 'UnRead') and not item.UnRead:
+                        self.logger.debug(f"Item {i+1} ignoré (déjà lu)")
                         continue
 
                     email_data = self._extract_email_data(item)
                     emails.append(email_data)
                     count += 1
 
-                    self.logger.debug(f"Email récupéré: {email_data.get('subject', 'Sans sujet')[:50]}")
+                    if count % 10 == 0:
+                        self.logger.info(f"Progression: {count} emails extraits sur {processed} traités")
 
                     if mark_as_read and hasattr(item, 'UnRead'):
                         item.UnRead = False
                         item.Save()
 
                 except Exception as e:
-                    self.logger.warning(f"Erreur extraction email: {e}")
+                    self.logger.warning(f"Erreur extraction email index {i+1}/{items_count}: {e}")
                     continue
                 finally:
                     # CRITIQUE: Libérer explicitement chaque objet COM item après usage
@@ -234,27 +258,32 @@ class OutlookConnector:
             self.logger.error(f"Erreur accès dossier {folder_name}: {e}", exc_info=True)
             return []
         finally:
-            # Libérer explicitement tous les objets COM avant CoUninitialize
-            try:
-                del items
-            except:
-                pass
-            try:
-                del folder
-            except:
-                pass
-            try:
-                del inbox
-            except:
-                pass
-            try:
-                del namespace
-            except:
-                pass
-            try:
-                del outlook
-            except:
-                pass
+            # Libérer explicitement tous les objets COM dans le bon ordre
+            if items is not None:
+                try:
+                    del items
+                except:
+                    pass
+            if folder is not None:
+                try:
+                    del folder
+                except:
+                    pass
+            if inbox is not None:
+                try:
+                    del inbox
+                except:
+                    pass
+            if namespace is not None:
+                try:
+                    del namespace
+                except:
+                    pass
+            if outlook is not None:
+                try:
+                    del outlook
+                except:
+                    pass
             try:
                 pythoncom.CoUninitialize()
             except:
