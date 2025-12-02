@@ -90,6 +90,47 @@ class APIClient {
     async getCategories() {
         return this.request('/api/categories');
     }
+
+    // Procedures
+    async getProcedureSuggestions(ticketId) {
+        return this.request(`/api/procedures/suggestions/${ticketId}`);
+    }
+
+    async createProcedureFromTicket(ticketId) {
+        return this.request('/api/procedures/create', {
+            method: 'POST',
+            body: JSON.stringify({ ticket_id: ticketId }),
+        });
+    }
+
+    async submitProcedureFeedback(procedureId, ticketId, feedbackType) {
+        return this.request('/api/procedures/feedback', {
+            method: 'POST',
+            body: JSON.stringify({
+                procedure_id: procedureId,
+                ticket_id: ticketId,
+                feedback_type: feedbackType,
+            }),
+        });
+    }
+
+    async getProcedures(filters = {}) {
+        const params = new URLSearchParams(filters).toString();
+        return this.request(`/api/procedures${params ? '?' + params : ''}`);
+    }
+
+    async updateProcedure(procedureId, data) {
+        return this.request(`/api/procedures/${procedureId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteProcedure(procedureId) {
+        return this.request(`/api/procedures/${procedureId}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 // Instance globale

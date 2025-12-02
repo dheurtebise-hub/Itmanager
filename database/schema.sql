@@ -196,3 +196,59 @@ CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_search USING fts5(
     content='knowledge_base',
     content_rowid='id'
 );
+
+-- ============================================
+-- TABLES PROCÉDURES
+-- ============================================
+
+-- Table des procédures
+CREATE TABLE IF NOT EXISTS procedures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    steps TEXT,
+    category TEXT,
+    keywords TEXT,
+    source_ticket_id INTEGER,
+    created_by TEXT DEFAULT 'ai',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    usage_count INTEGER DEFAULT 0,
+    positive_feedback_count INTEGER DEFAULT 0,
+    negative_feedback_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (source_ticket_id) REFERENCES tickets(id)
+);
+
+-- Table des feedbacks sur les procédures
+CREATE TABLE IF NOT EXISTS procedure_feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    procedure_id INTEGER NOT NULL,
+    ticket_id INTEGER NOT NULL,
+    feedback_type TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (procedure_id) REFERENCES procedures(id),
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    UNIQUE (procedure_id, ticket_id)
+);
+
+-- Table pour associer les procédures aux tickets
+CREATE TABLE IF NOT EXISTS ticket_procedures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    procedure_id INTEGER NOT NULL,
+    confidence REAL DEFAULT 0.0,
+    was_suggested BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES tickets(id),
+    FOREIGN KEY (procedure_id) REFERENCES procedures(id),
+    UNIQUE (ticket_id, procedure_id)
+);
+
+-- Index pour optimisation des recherches de procédures
+CREATE INDEX IF NOT EXISTS idx_procedures_category ON procedures(category);
+CREATE INDEX IF NOT EXISTS idx_procedures_active ON procedures(is_active);
+CREATE INDEX IF NOT EXISTS idx_procedures_usage ON procedures(usage_count DESC);
+CREATE INDEX IF NOT EXISTS idx_procedure_feedback_procedure ON procedure_feedback(procedure_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_procedures_ticket ON ticket_procedures(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_procedures_procedure ON ticket_procedures(procedure_id);

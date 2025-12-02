@@ -384,3 +384,306 @@
     font-size: 0.95rem;
     line-height: 1.7;
 }
+
+/* ============================================
+   COLONNE PROCÉDURE
+   ============================================ */
+
+.column-procedure {
+    background: var(--kanban-new);
+    min-width: 350px;
+}
+
+.procedure-content {
+    padding: 0.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.procedure-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.procedure-content::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
+.procedure-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.procedure-empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-tertiary);
+}
+
+.procedure-empty-state .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+/* Ticket sélectionné pour les procédures */
+.procedure-selected-ticket {
+    background: var(--bg-primary);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    border-left: 3px solid var(--primary);
+}
+
+.procedure-selected-ticket-title {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.procedure-selected-ticket-subject {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.procedure-selected-ticket-id {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Liste des procédures suggérées */
+.procedure-suggestions {
+    margin-top: 1rem;
+}
+
+.procedure-suggestions-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    padding-left: 0.25rem;
+}
+
+.procedure-item {
+    background: var(--bg-primary);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+.procedure-item:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.procedure-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.procedure-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    flex: 1;
+}
+
+.procedure-confidence {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    background: var(--bg-tertiary);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+}
+
+.procedure-description {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.procedure-steps {
+    margin-bottom: 0.75rem;
+}
+
+.procedure-steps-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.procedure-step {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    padding: 0.25rem 0;
+    padding-left: 1.25rem;
+    position: relative;
+}
+
+.procedure-step::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+}
+
+.procedure-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.procedure-feedback {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.procedure-feedback-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.procedure-feedback-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.feedback-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.feedback-btn:hover {
+    background: var(--bg-tertiary);
+    transform: scale(1.1);
+}
+
+.feedback-btn.active {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+}
+
+.feedback-btn.active.thumbs-up {
+    background: var(--status-success);
+    border-color: var(--status-success);
+}
+
+.feedback-btn.active.thumbs-down {
+    background: var(--status-error);
+    border-color: var(--status-error);
+}
+
+.procedure-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-procedure {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn-procedure-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-procedure-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Boîte de dialogue pour créer une procédure */
+.procedure-create-dialog {
+    background: var(--bg-primary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px dashed var(--border-color);
+    text-align: center;
+}
+
+.procedure-create-dialog-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.procedure-create-dialog-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.procedure-create-dialog-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.btn-create-procedure {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-create-procedure:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Loading state */
+.procedure-loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-tertiary);
+}
+
+.procedure-loading-spinner {
+    font-size: 2rem;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

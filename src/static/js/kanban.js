@@ -73,9 +73,12 @@ function createTicketCard(ticket) {
              draggable="true"
              data-ticket-id="${ticket.id}"
              data-ticket-status="${ticket.status}"
+             data-ticket-subject="${escapeHtml(ticket.subject)}"
+             data-ticket-summary="${escapeHtml(ticket.summary || '')}"
              ondragstart="handleDragStart(event)"
              ondragend="handleDragEnd(event)"
-             onclick="handleTicketClick(event, ${ticket.id})">
+             onclick="handleTicketSingleClick(event, ${ticket.id})"
+             ondblclick="handleTicketDoubleClick(event, ${ticket.id})">
             <div class="ticket-header">
                 <span class="ticket-id">#${ticket.id}</span>
                 ${priorityBadge}
@@ -289,14 +292,48 @@ function exportTickets(format) {
 
 let draggedTicketId = null;
 let isDragging = false;
+let clickTimer = null;
+let selectedTicketForProcedure = null;
 
-function handleTicketClick(event, ticketId) {
-    // Ne pas ouvrir la modal si on vient de finir un drag
+// Simple clic : afficher les procédures
+function handleTicketSingleClick(event, ticketId) {
+    // Ne pas traiter si on vient de finir un drag
     if (isDragging) {
         event.preventDefault();
         event.stopPropagation();
         return;
     }
+
+    // Annuler le timer précédent si double clic détecté
+    if (clickTimer !== null) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        return;
+    }
+
+    // Délai pour distinguer simple clic du double clic
+    clickTimer = setTimeout(() => {
+        clickTimer = null;
+        showProceduresForTicket(ticketId);
+    }, 250);
+}
+
+// Double clic : ouvrir la modal du ticket
+function handleTicketDoubleClick(event, ticketId) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Annuler le timer du simple clic
+    if (clickTimer !== null) {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+    }
+
+    // Ne pas ouvrir la modal si on vient de finir un drag
+    if (isDragging) {
+        return;
+    }
+
     openTicketModal(ticketId);
 }
 
@@ -411,3 +448,209 @@ function initializeDropZones() {
 document.addEventListener('DOMContentLoaded', () => {
     initializeDropZones();
 });
+
+// ============================================
+// GESTION DES PROCÉDURES
+// ============================================
+
+async function showProceduresForTicket(ticketId) {
+    const procedureContent = document.getElementById('procedure-content');
+    if (!procedureContent) return;
+
+    // Trouver le ticket dans la liste
+    const ticket = allTickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+
+    selectedTicketForProcedure = ticket;
+
+    // Afficher le loading
+    procedureContent.innerHTML = `
+        <div class="procedure-loading">
+            <div class="procedure-loading-spinner">⏳</div>
+            <div style="margin-top: 1rem;">Recherche des procédures...</div>
+        </div>
+    `;
+
+    try {
+        // Appeler l'API pour obtenir les suggestions de procédures
+        const suggestions = await api.getProcedureSuggestions(ticketId);
+
+        renderProcedures(ticket, suggestions);
+    } catch (error) {
+        console.error('Error loading procedures:', error);
+
+        // Si aucune procédure n'existe, afficher la boîte de dialogue pour en créer une
+        renderCreateProcedureDialog(ticket);
+    }
+}
+
+function renderProcedures(ticket, suggestions) {
+    const procedureContent = document.getElementById('procedure-content');
+    if (!procedureContent) return;
+
+    let html = `
+        <div class="procedure-selected-ticket">
+            <div class="procedure-selected-ticket-title">Ticket sélectionné</div>
+            <div class="procedure-selected-ticket-subject">${escapeHtml(ticket.subject)}</div>
+            <div class="procedure-selected-ticket-id">#${ticket.id}</div>
+        </div>
+    `;
+
+    if (!suggestions || suggestions.length === 0) {
+        // Aucune procédure trouvée
+        html += `
+            <div class="procedure-create-dialog">
+                <div class="procedure-create-dialog-icon">📝</div>
+                <div class="procedure-create-dialog-title">Aucune procédure trouvée</div>
+                <div class="procedure-create-dialog-description">
+                    Il n'existe pas encore de procédure pour ce type de problème.
+                    Voulez-vous en créer une ?
+                </div>
+                <button class="btn-create-procedure" onclick="createNewProcedure(${ticket.id})">
+                    Créer une procédure
+                </button>
+            </div>
+        `;
+    } else {
+        // Afficher les procédures suggérées
+        html += `
+            <div class="procedure-suggestions">
+                <div class="procedure-suggestions-title">Procédures suggérées (${suggestions.length})</div>
+        `;
+
+        suggestions.forEach(proc => {
+            html += createProcedureCard(proc, ticket.id);
+        });
+
+        html += `</div>`;
+    }
+
+    procedureContent.innerHTML = html;
+}
+
+function renderCreateProcedureDialog(ticket) {
+    const procedureContent = document.getElementById('procedure-content');
+    if (!procedureContent) return;
+
+    procedureContent.innerHTML = `
+        <div class="procedure-selected-ticket">
+            <div class="procedure-selected-ticket-title">Ticket sélectionné</div>
+            <div class="procedure-selected-ticket-subject">${escapeHtml(ticket.subject)}</div>
+            <div class="procedure-selected-ticket-id">#${ticket.id}</div>
+        </div>
+
+        <div class="procedure-create-dialog">
+            <div class="procedure-create-dialog-icon">📝</div>
+            <div class="procedure-create-dialog-title">Aucune procédure trouvée</div>
+            <div class="procedure-create-dialog-description">
+                Il n'existe pas encore de procédure pour ce type de problème.
+                Voulez-vous en créer une ?
+            </div>
+            <button class="btn-create-procedure" onclick="createNewProcedure(${ticket.id})">
+                Créer une procédure
+            </button>
+        </div>
+    `;
+}
+
+function createProcedureCard(procedure, ticketId) {
+    const stepsHtml = procedure.steps && procedure.steps.length > 0
+        ? `
+            <div class="procedure-steps">
+                <div class="procedure-steps-title">Étapes :</div>
+                ${procedure.steps.map(step => `<div class="procedure-step">${escapeHtml(step)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    const confidenceHtml = procedure.confidence
+        ? `<span class="procedure-confidence">${Math.round(procedure.confidence * 100)}%</span>`
+        : '';
+
+    // Déterminer l'état du feedback
+    const thumbsUpClass = procedure.feedback === 'positive' ? 'active thumbs-up' : '';
+    const thumbsDownClass = procedure.feedback === 'negative' ? 'active thumbs-down' : '';
+
+    return `
+        <div class="procedure-item" data-procedure-id="${procedure.id}">
+            <div class="procedure-header">
+                <div class="procedure-title">${escapeHtml(procedure.title)}</div>
+                ${confidenceHtml}
+            </div>
+
+            ${procedure.description ? `<div class="procedure-description">${escapeHtml(procedure.description)}</div>` : ''}
+
+            ${stepsHtml}
+
+            <div class="procedure-footer">
+                <div class="procedure-feedback">
+                    <span class="procedure-feedback-label">Utile ?</span>
+                    <div class="procedure-feedback-buttons">
+                        <button class="feedback-btn ${thumbsUpClass}"
+                                onclick="submitProcedureFeedback(${procedure.id}, ${ticketId}, 'positive')">
+                            👍
+                        </button>
+                        <button class="feedback-btn ${thumbsDownClass}"
+                                onclick="submitProcedureFeedback(${procedure.id}, ${ticketId}, 'negative')">
+                            👎
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function submitProcedureFeedback(procedureId, ticketId, feedbackType) {
+    try {
+        await api.submitProcedureFeedback(procedureId, ticketId, feedbackType);
+
+        // Afficher une notification
+        showNotification(
+            feedbackType === 'positive'
+                ? '✅ Merci pour votre retour positif !'
+                : '📝 Merci, nous allons améliorer cette procédure',
+            'success'
+        );
+
+        // Recharger les procédures pour mettre à jour l'affichage
+        await showProceduresForTicket(ticketId);
+    } catch (error) {
+        console.error('Error submitting feedback:', error);
+        showNotification('❌ Erreur lors de l\'envoi du feedback', 'error');
+    }
+}
+
+async function createNewProcedure(ticketId) {
+    const procedureContent = document.getElementById('procedure-content');
+    if (!procedureContent) return;
+
+    // Afficher le loading
+    const ticket = allTickets.find(t => t.id === ticketId);
+    procedureContent.innerHTML = `
+        <div class="procedure-selected-ticket">
+            <div class="procedure-selected-ticket-title">Ticket sélectionné</div>
+            <div class="procedure-selected-ticket-subject">${escapeHtml(ticket.subject)}</div>
+            <div class="procedure-selected-ticket-id">#${ticket.id}</div>
+        </div>
+
+        <div class="procedure-loading">
+            <div class="procedure-loading-spinner">⏳</div>
+            <div style="margin-top: 1rem;">Création de la procédure avec l'IA...</div>
+        </div>
+    `;
+
+    try {
+        // Appeler l'API pour créer une nouvelle procédure basée sur le ticket
+        const newProcedure = await api.createProcedureFromTicket(ticketId);
+
+        showNotification('✅ Nouvelle procédure créée avec succès !', 'success');
+
+        // Afficher la nouvelle procédure
+        await showProceduresForTicket(ticketId);
+    } catch (error) {
+        console.error('Error creating procedure:', error);
+        showNotification('❌ Erreur lors de la création de la procédure', 'error');
+        renderCreateProcedureDialog(ticket);
+    }
+}
