@@ -121,13 +121,21 @@ class OutlookConnector:
                 for i in range(folder_count):
                     folder = None
                     try:
-                        # Accès par index (1-based en COM)
-                        folder = inbox.Folders[i + 1]
+                        # Accès par index (1-based en COM) avec .Item()
+                        try:
+                            folder = inbox.Folders.Item(i + 1)
+                        except Exception as idx_err:
+                            self.logger.warning(f"Impossible d'accéder au dossier index {i+1}: {idx_err}")
+                            continue
+
                         folders.append({
                             'name': folder.Name,
                             'count': folder.Items.Count,
                             'has_subfolders': folder.Folders.Count > 0
                         })
+                    except Exception as e:
+                        self.logger.warning(f"Erreur traitement dossier index {i+1}: {e}")
+                        continue
                     finally:
                         if folder is not None:
                             try:
@@ -287,7 +295,12 @@ class OutlookConnector:
                     item = None
                     try:
                         processed += 1
-                        item = items[i + 1]
+                        # COM collections sont 1-indexées, mais vérifier d'abord si l'index est valide
+                        try:
+                            item = items.Item(i + 1)  # Utiliser .Item() au lieu de []
+                        except Exception as idx_err:
+                            self.logger.warning(f"Impossible d'accéder à l'item {i+1}: {idx_err}")
+                            continue
 
                         # Vérifier si c'est un MailItem
                         if not hasattr(item, 'Subject'):
