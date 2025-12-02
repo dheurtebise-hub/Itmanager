@@ -15,7 +15,8 @@ class OutlookFolderManager:
         'import': 'App-Import',
         'in_progress': 'App-EnCours',
         'resolved': 'App-Cloturé',
-        'archive': 'App-Archives'
+        'archive': 'App-Archives',
+        'non_user_request': 'App-à trier'
     }
 
     def __init__(self):
@@ -179,6 +180,18 @@ class OutlookFolderManager:
 
         folder_key = status_to_folder[new_status]
         return self.move_email_to_folder(message_id, folder_key)
+
+    def move_email_to_non_user_request(self, message_id: str) -> Tuple[bool, str]:
+        """
+        Déplace un email vers le dossier 'App-à trier' pour les non-demandes utilisateur.
+
+        Args:
+            message_id: L'EntryID de l'email à déplacer
+
+        Returns:
+            Tuple (success, message)
+        """
+        return self.move_email_to_folder(message_id, 'non_user_request')
 
 
 folder_manager = OutlookFolderManager()

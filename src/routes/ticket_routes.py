@@ -215,6 +215,46 @@ def update_ticket(ticket_id):
     else:
         return jsonify({'error': 'Erreur mise à jour'}), 500
 
+@ticket_bp.route('/api/tickets/<int:ticket_id>/mark-not-user-request', methods=['POST'])
+def mark_not_user_request(ticket_id):
+    """Marque un ticket comme non-demande utilisateur et le déplace dans App-à trier."""
+    from services.outlook_folder_manager import folder_manager
+
+    ticket = Ticket.get_by_id(ticket_id)
+    if not ticket:
+        return jsonify({'error': 'Ticket non trouvé'}), 404
+
+    # Mettre à jour le ticket
+    updates = {
+        'status': 'resolved',
+        'is_not_user_request': True,
+        'resolution': 'Marqué comme non-demande utilisateur'
+    }
+
+    success = Ticket.update(ticket_id, updates)
+    if not success:
+        return jsonify({'error': 'Erreur lors de la mise à jour du ticket'}), 500
+
+    # Déplacer l'email dans le dossier "App-à trier"
+    if ticket.get('message_id'):
+        try:
+            move_success, move_msg = folder_manager.move_email_to_non_user_request(ticket['message_id'])
+            if not move_success:
+                return jsonify({
+                    'success': True,
+                    'warning': f'Ticket mis à jour mais email non déplacé: {move_msg}'
+                }), 200
+        except Exception as e:
+            return jsonify({
+                'success': True,
+                'warning': f'Ticket mis à jour mais erreur déplacement email: {str(e)}'
+            }), 200
+
+    return jsonify({
+        'success': True,
+        'message': 'Ticket marqué comme non-demande utilisateur'
+    }), 200
+
 @ticket_bp.route('/api/tickets/<int:ticket_id>/suggest', methods=['GET'])
 def get_suggestion(ticket_id):
     """Génère une suggestion de résolution."""

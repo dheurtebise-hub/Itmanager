@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     ai_confidence REAL,
     has_attachments BOOLEAN DEFAULT FALSE,
     importance INTEGER DEFAULT 0,
-    priority_boost INTEGER DEFAULT 0
+    priority_boost INTEGER DEFAULT 0,
+    is_not_user_request BOOLEAN DEFAULT FALSE
 );
 
 -- Table de la base de connaissances

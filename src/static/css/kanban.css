@@ -119,6 +119,23 @@
     box-shadow: var(--shadow-md);
 }
 
+/* Tickets marqués comme non-demande utilisateur */
+.ticket-card.not-user-request {
+    opacity: 0.5;
+    filter: grayscale(50%);
+    border: 1px dashed var(--border-color);
+}
+
+.ticket-card.not-user-request:hover {
+    opacity: 0.65;
+    transform: none;
+}
+
+.ticket-card.not-user-request .ticket-subject::before {
+    content: '🚫 ';
+    opacity: 0.7;
+}
+
 .ticket-header {
     display: flex;
     justify-content: space-between;

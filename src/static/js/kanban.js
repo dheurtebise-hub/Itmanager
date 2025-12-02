@@ -67,9 +67,10 @@ function createTicketCard(ticket) {
     const priorityBadge = getPriorityBadge(ticket.priority);
     const slaIndicator = getSLAIndicator(ticket.sla_status);
     const timeAgo = formatTimeAgo(ticket.received_date);
+    const notUserRequestClass = ticket.is_not_user_request ? ' not-user-request' : '';
 
     return `
-        <div class="ticket-card"
+        <div class="ticket-card${notUserRequestClass}"
              draggable="true"
              data-ticket-id="${ticket.id}"
              data-ticket-status="${ticket.status}"

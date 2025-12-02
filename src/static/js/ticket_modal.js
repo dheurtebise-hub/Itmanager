@@ -195,6 +195,14 @@ function renderTicketDetails(ticket) {
                         <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Marquer comme résolu</button>
                     ` : ''}
                 </div>
+
+                ${ticket.status !== 'resolved' && !ticket.is_not_user_request ? `
+                <div class="form-group mt-2">
+                    <button class="btn btn-warning btn-sm w-100" onclick="markAsNotUserRequest(${ticket.id})">
+                        🚫 Ce ticket n'est pas une demande utilisateur
+                    </button>
+                </div>
+                ` : ''}
             </div>
 
             <!-- Colonne droite: Conversation -->
@@ -274,6 +282,27 @@ async function resolveTicket(ticketId) {
         console.error('Error resolving ticket:', error);
         showNotification('Erreur lors de la résolution du ticket', 'error');
         alert(`Erreur: ${error.message || 'Impossible de résoudre le ticket'}`);
+    }
+}
+
+async function markAsNotUserRequest(ticketId) {
+    const confirm = window.confirm(
+        'Marquer ce ticket comme "non-demande utilisateur" ?\n\n' +
+        'Le ticket sera déplacé dans "Résolu", grisé et l\'email sera déplacé dans le dossier "App-à trier".'
+    );
+
+    if (!confirm) return;
+
+    try {
+        await api.markAsNotUserRequest(ticketId);
+        showNotification('Ticket marqué comme non-demande utilisateur', 'success');
+
+        await loadTickets();
+        closeTicketModal();
+    } catch (error) {
+        console.error('Error marking ticket as not user request:', error);
+        showNotification('Erreur lors du marquage du ticket', 'error');
+        alert(`Erreur: ${error.message || 'Impossible de marquer le ticket'}`);
     }
 }
 

@@ -44,6 +44,12 @@ class APIClient {
         });
     }
 
+    async markAsNotUserRequest(id) {
+        return this.request(`/api/tickets/${id}/mark-not-user-request`, {
+            method: 'POST',
+        });
+    }
+
     async getSuggestion(id) {
         return this.request(`/api/tickets/${id}/suggest`);
     }
