@@ -56,39 +56,35 @@ function getSenderInitials(sender) {
 function renderEmailThread(ticket) {
     const messages = ticket.messages || [];
 
-    // Récupérer la demande initiale (dernier message = le plus récent)
-    const initialRequest = messages.length > 0 ? messages[messages.length - 1] : null;
+    // Utiliser le body complet comme demande initiale si pas de messages parsés
+    const requestContent = messages.length > 0 && messages[messages.length - 1]
+        ? (messages[messages.length - 1].content || messages[messages.length - 1])
+        : (ticket.body || 'Pas de contenu');
+
+    const sender = ticket.sender_name || ticket.sender_email || 'Demandeur';
+    const initials = getSenderInitials(sender);
     const aiSummary = ticket.summary;
 
     let html = '';
 
     // Afficher la demande initiale
-    if (initialRequest) {
-        const sender = initialRequest.sender || ticket.sender_name || 'Demandeur';
-        const content = initialRequest.content || initialRequest;
-        const bgColor = '#E3F2FD'; // Bleu clair pour la demande
-        const initials = getSenderInitials(sender);
-
-        html += `
-        <div class="request-section">
-            <div class="section-label">📩 Demande initiale</div>
-            <div class="chat-message" style="background: ${bgColor}; border-left: 3px solid #2196F3;">
-                <div class="chat-message-header">
-                    <div class="chat-avatar">${initials}</div>
-                    <div class="chat-sender">${escapeHtml(sender)}</div>
-                </div>
-                <div class="chat-message-content">
-                    ${escapeHtml(typeof content === 'string' ? content : JSON.stringify(content)).replace(/\n/g, '<br>')}
-                </div>
+    html += `
+    <div class="request-section">
+        <div class="section-label">📩 Demande initiale</div>
+        <div class="chat-message" style="background: #E3F2FD; border-left: 3px solid #2196F3;">
+            <div class="chat-message-header">
+                <div class="chat-avatar">${initials}</div>
+                <div class="chat-sender">${escapeHtml(sender)}</div>
+            </div>
+            <div class="chat-message-content">
+                ${escapeHtml(requestContent).replace(/\n/g, '<br>')}
             </div>
         </div>
-        `;
-    } else {
-        html += '<div class="chat-message">Pas de contenu</div>';
-    }
+    </div>
+    `;
 
-    // Afficher le résumé IA si disponible
-    if (aiSummary) {
+    // Afficher le résumé IA seulement s'il existe ET qu'il est différent du sujet
+    if (aiSummary && aiSummary !== ticket.subject && aiSummary.length > 10) {
         html += `
         <div class="request-section">
             <div class="section-label">🤖 Reformulation IA</div>

@@ -49,12 +49,11 @@ class AIService:
         if not self.client:
             return {'category': 'autre', 'priority': 'medium', 'confidence': 0}
 
-        # D'abord essayer les règles simples
+        # D'abord essayer les règles simples pour catégorie/priorité
         simple_result = self._simple_categorization(ticket_data)
-        if simple_result['confidence'] > 0.8:
-            return simple_result
+        use_simple_category = simple_result['confidence'] > 0.8
 
-        # Sinon utiliser l'IA
+        # Toujours utiliser l'IA pour générer un résumé de qualité
         model = config.get('ai_model_categorize', 'claude-haiku-4-5-20251001')
 
         categories = [
@@ -87,9 +86,19 @@ Réponds UNIQUEMENT avec un JSON valide:
 
             self._track_cost(model, response.usage)
 
+            # Si les règles simples ont donné une catégorie fiable, on les utilise
+            # mais on garde le résumé généré par l'IA
+            if use_simple_category:
+                result['category'] = simple_result['category']
+                result['priority'] = simple_result['priority']
+                result['confidence'] = simple_result['confidence']
+
             return result
         except Exception as e:
             self.logger.error(f"Erreur catégorisation IA: {e}")
+            # En cas d'erreur, utiliser au moins les règles simples si disponibles
+            if use_simple_category:
+                return simple_result
             return {'category': 'autre', 'priority': 'medium', 'confidence': 0}
 
     def _simple_categorization(self, ticket_data: Dict[str, Any]) -> Dict[str, Any]:
