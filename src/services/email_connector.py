@@ -78,57 +78,96 @@ class OutlookConnector:
         outlook = None
         namespace = None
         inbox = None
-        try:
-            pythoncom.CoInitialize()
-            outlook = win32com.client.Dispatch("Outlook.Application")
-            namespace = outlook.GetNamespace("MAPI")
-            inbox = namespace.GetDefaultFolder(6)
 
-            folders = []
-            folder_count = inbox.Folders.Count
+        # Retry logic
+        max_retries = 3
+        retry_delay = 2
 
-            for i in range(folder_count):
-                folder = None
+        for attempt in range(max_retries):
+            try:
+                pythoncom.CoInitialize()
+                outlook = win32com.client.Dispatch("Outlook.Application")
+                namespace = outlook.GetNamespace("MAPI")
+
+                # Tenter d'accéder à l'inbox
                 try:
-                    # Accès par index (1-based en COM)
-                    folder = inbox.Folders[i + 1]
-                    folders.append({
-                        'name': folder.Name,
-                        'count': folder.Items.Count,
-                        'has_subfolders': folder.Folders.Count > 0
-                    })
-                finally:
-                    if folder is not None:
+                    inbox = namespace.GetDefaultFolder(6)
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        self.logger.warning(f"Tentative {attempt + 1}/{max_retries} échouée pour lister dossiers: {e}, retry dans {retry_delay}s...")
+                        if namespace:
+                            try:
+                                del namespace
+                            except:
+                                pass
+                        if outlook:
+                            try:
+                                del outlook
+                            except:
+                                pass
                         try:
-                            del folder
+                            pythoncom.CoUninitialize()
                         except:
                             pass
+                        import time
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        raise
 
-            return folders
-        except Exception as e:
-            self.logger.error(f"Erreur liste dossiers: {e}")
-            return []
-        finally:
-            # Libérer les objets COM
-            if inbox is not None:
+                folders = []
+                folder_count = inbox.Folders.Count
+
+                for i in range(folder_count):
+                    folder = None
+                    try:
+                        # Accès par index (1-based en COM)
+                        folder = inbox.Folders[i + 1]
+                        folders.append({
+                            'name': folder.Name,
+                            'count': folder.Items.Count,
+                            'has_subfolders': folder.Folders.Count > 0
+                        })
+                    finally:
+                        if folder is not None:
+                            try:
+                                del folder
+                            except:
+                                pass
+
+                self.logger.info(f"{len(folders)} dossiers Outlook trouvés")
+                return folders
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"Erreur liste dossiers, tentative {attempt + 1}/{max_retries}: {e}")
+                    continue
+                else:
+                    self.logger.error(f"Erreur liste dossiers après {max_retries} tentatives: {e}")
+                    return []
+            finally:
+                # Libérer les objets COM
+                if inbox is not None:
+                    try:
+                        del inbox
+                    except:
+                        pass
+                if namespace is not None:
+                    try:
+                        del namespace
+                    except:
+                        pass
+                if outlook is not None:
+                    try:
+                        del outlook
+                    except:
+                        pass
                 try:
-                    del inbox
+                    pythoncom.CoUninitialize()
                 except:
                     pass
-            if namespace is not None:
-                try:
-                    del namespace
-                except:
-                    pass
-            if outlook is not None:
-                try:
-                    del outlook
-                except:
-                    pass
-            try:
-                pythoncom.CoUninitialize()
-            except:
-                pass
+
+        return []
 
     def get_new_emails(self, mark_as_read: bool = False, limit: int = None, only_unread: bool = False) -> List[Dict[str, Any]]:
         """Récupère les nouveaux emails de tous les dossiers activés.
@@ -172,122 +211,159 @@ class OutlookConnector:
         folder = None
         items = None
 
-        try:
-            pythoncom.CoInitialize()
-            outlook = win32com.client.Dispatch("Outlook.Application")
-            namespace = outlook.GetNamespace("MAPI")
-            inbox = namespace.GetDefaultFolder(6)
+        # Retry logic pour gérer les problèmes temporaires COM
+        max_retries = 3
+        retry_delay = 2  # secondes
 
-            # Navigation vers le dossier
-            folder = inbox
-            for part in folder_name.split('/'):
-                self.logger.debug(f"Navigation vers sous-dossier: {part}")
-                folder = folder.Folders[part]
-
-            total_items = folder.Items.Count
-            self.logger.info(f"Accès au dossier '{folder_name}', {total_items} emails au total")
-
-            if total_items == 0:
-                self.logger.info(f"Dossier '{folder_name}' vide, aucun email à traiter")
-                return []
-
-            emails = []
-            items = folder.Items
-
-            # Tri avec gestion d'erreur
+        for attempt in range(max_retries):
             try:
-                items.Sort("[ReceivedTime]", True)
-                self.logger.debug(f"Tri des emails par date effectué")
-            except Exception as e:
-                self.logger.warning(f"Impossible de trier les emails: {e}, utilisation de l'ordre par défaut")
+                pythoncom.CoInitialize()
+                outlook = win32com.client.Dispatch("Outlook.Application")
+                namespace = outlook.GetNamespace("MAPI")
 
-            count = 0
-            processed = 0
-            items_count = items.Count
-
-            self.logger.debug(f"Début traitement de {items_count} emails (limit={limit}, only_unread={only_unread})")
-
-            for i in range(items_count):
-                # Limite de traitement
-                if limit and count >= limit:
-                    self.logger.debug(f"Limite de {limit} emails atteinte, arrêt")
-                    break
-
-                # Récupérer l'item par index (1-based en COM)
-                item = None
+                # Tenter d'accéder à l'inbox
                 try:
-                    processed += 1
-                    item = items[i + 1]
-
-                    # Vérifier si c'est un MailItem
-                    if not hasattr(item, 'Subject'):
-                        self.logger.debug(f"Item {i+1} ignoré (pas un MailItem)")
-                        continue
-
-                    # Filtre : seulement les non lus OU tous les emails
-                    if only_unread and hasattr(item, 'UnRead') and not item.UnRead:
-                        self.logger.debug(f"Item {i+1} ignoré (déjà lu)")
-                        continue
-
-                    email_data = self._extract_email_data(item)
-                    emails.append(email_data)
-                    count += 1
-
-                    if count % 10 == 0:
-                        self.logger.info(f"Progression: {count} emails extraits sur {processed} traités")
-
-                    if mark_as_read and hasattr(item, 'UnRead'):
-                        item.UnRead = False
-                        item.Save()
-
+                    inbox = namespace.GetDefaultFolder(6)  # 6 = olFolderInbox
                 except Exception as e:
-                    self.logger.warning(f"Erreur extraction email index {i+1}/{items_count}: {e}")
-                    continue
-                finally:
-                    # CRITIQUE: Libérer explicitement chaque objet COM item après usage
-                    if item is not None:
+                    if attempt < max_retries - 1:
+                        self.logger.warning(f"Tentative {attempt + 1}/{max_retries} échouée pour accès inbox: {e}, nouvelle tentative dans {retry_delay}s...")
+                        # Nettoyer avant retry
+                        if namespace:
+                            try:
+                                del namespace
+                            except:
+                                pass
+                        if outlook:
+                            try:
+                                del outlook
+                            except:
+                                pass
                         try:
-                            del item
+                            pythoncom.CoUninitialize()
                         except:
                             pass
+                        import time
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        raise Exception(f"Impossible d'accéder à la boîte de réception après {max_retries} tentatives. Vérifiez qu'Outlook est en mode connecté et que votre profil est correctement configuré.")
 
-            self.logger.info(f"Dossier '{folder_name}': {count} emails extraits sur {processed} traités")
-            return emails
+                # Navigation vers le dossier
+                folder = inbox
+                for part in folder_name.split('/'):
+                    self.logger.debug(f"Navigation vers sous-dossier: {part}")
+                    folder = folder.Folders[part]
 
-        except Exception as e:
-            self.logger.error(f"Erreur accès dossier {folder_name}: {e}", exc_info=True)
-            return []
-        finally:
-            # Libérer explicitement tous les objets COM dans le bon ordre
-            if items is not None:
+                total_items = folder.Items.Count
+                self.logger.info(f"Accès au dossier '{folder_name}', {total_items} emails au total")
+
+                if total_items == 0:
+                    self.logger.info(f"Dossier '{folder_name}' vide, aucun email à traiter")
+                    return []
+
+                emails = []
+                items = folder.Items
+
+                # Tri avec gestion d'erreur
                 try:
-                    del items
+                    items.Sort("[ReceivedTime]", True)
+                    self.logger.debug(f"Tri des emails par date effectué")
+                except Exception as e:
+                    self.logger.warning(f"Impossible de trier les emails: {e}, utilisation de l'ordre par défaut")
+
+                count = 0
+                processed = 0
+                items_count = items.Count
+
+                self.logger.debug(f"Début traitement de {items_count} emails (limit={limit}, only_unread={only_unread})")
+
+                for i in range(items_count):
+                    # Limite de traitement
+                    if limit and count >= limit:
+                        self.logger.debug(f"Limite de {limit} emails atteinte, arrêt")
+                        break
+
+                    # Récupérer l'item par index (1-based en COM)
+                    item = None
+                    try:
+                        processed += 1
+                        item = items[i + 1]
+
+                        # Vérifier si c'est un MailItem
+                        if not hasattr(item, 'Subject'):
+                            self.logger.debug(f"Item {i+1} ignoré (pas un MailItem)")
+                            continue
+
+                        # Filtre : seulement les non lus OU tous les emails
+                        if only_unread and hasattr(item, 'UnRead') and not item.UnRead:
+                            self.logger.debug(f"Item {i+1} ignoré (déjà lu)")
+                            continue
+
+                        email_data = self._extract_email_data(item)
+                        emails.append(email_data)
+                        count += 1
+
+                        if count % 10 == 0:
+                            self.logger.info(f"Progression: {count} emails extraits sur {processed} traités")
+
+                        if mark_as_read and hasattr(item, 'UnRead'):
+                            item.UnRead = False
+                            item.Save()
+
+                    except Exception as e:
+                        self.logger.warning(f"Erreur extraction email index {i+1}/{items_count}: {e}")
+                        continue
+                    finally:
+                        # CRITIQUE: Libérer explicitement chaque objet COM item après usage
+                        if item is not None:
+                            try:
+                                del item
+                            except:
+                                pass
+
+                self.logger.info(f"Dossier '{folder_name}': {count} emails extraits sur {processed} traités")
+                return emails
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    self.logger.warning(f"Erreur dossier {folder_name}, tentative {attempt + 1}/{max_retries}: {e}")
+                    continue
+                else:
+                    self.logger.error(f"Erreur accès dossier {folder_name} après {max_retries} tentatives: {e}", exc_info=True)
+                    return []
+            finally:
+                # Libérer explicitement tous les objets COM dans le bon ordre
+                if items is not None:
+                    try:
+                        del items
+                    except:
+                        pass
+                if folder is not None:
+                    try:
+                        del folder
+                    except:
+                        pass
+                if inbox is not None:
+                    try:
+                        del inbox
+                    except:
+                        pass
+                if namespace is not None:
+                    try:
+                        del namespace
+                    except:
+                        pass
+                if outlook is not None:
+                    try:
+                        del outlook
+                    except:
+                        pass
+                try:
+                    pythoncom.CoUninitialize()
                 except:
                     pass
-            if folder is not None:
-                try:
-                    del folder
-                except:
-                    pass
-            if inbox is not None:
-                try:
-                    del inbox
-                except:
-                    pass
-            if namespace is not None:
-                try:
-                    del namespace
-                except:
-                    pass
-            if outlook is not None:
-                try:
-                    del outlook
-                except:
-                    pass
-            try:
-                pythoncom.CoUninitialize()
-            except:
-                pass
+
+        return []
 
     def _parse_email_thread(self, body: str) -> list:
         """Parse le corps de l'email en messages séparés (comme une conversation)."""
