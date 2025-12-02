@@ -6,6 +6,8 @@ from flask import Blueprint, request, jsonify, render_template
 from config import config
 from services.backup_service import backup_service
 from services.email_connector import OutlookConnector
+from services.outlook_folder_manager import folder_manager
+from services.archive_service import archive_service
 from models.database import db
 
 config_bp = Blueprint('config', __name__)
@@ -100,3 +102,47 @@ def list_outlook_folders():
         return jsonify(folders)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@config_bp.route('/api/outlook/setup-folders', methods=['POST'])
+def setup_outlook_folders():
+    """Crée les dossiers Outlook de l'application s'ils n'existent pas."""
+    try:
+        success, message = folder_manager.ensure_folders_exist()
+
+        if success:
+            # Mettre à jour la config pour utiliser App-Import par défaut
+            config.set('outlook_folders', [
+                {'name': 'App-Import', 'enabled': True, 'priority_boost': 0}
+            ])
+            config.save()
+
+            return jsonify({'success': True, 'message': message})
+        else:
+            return jsonify({'success': False, 'message': message}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@config_bp.route('/api/archive/run', methods=['POST'])
+def run_archive():
+    """Exécute manuellement l'archivage des tickets résolus depuis 7 jours."""
+    try:
+        result = archive_service.archive_old_resolved_tickets()
+        return jsonify({
+            'success': True,
+            'archived': result['archived'],
+            'moved_emails': result['moved_emails'],
+            'errors': result['errors'],
+            'error_details': result.get('error_details')
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@config_bp.route('/api/archive/preview', methods=['GET'])
+def preview_archive():
+    """Retourne le nombre de tickets qui seront archivés."""
+    try:
+        count = archive_service.get_tickets_to_archive_count()
+        return jsonify({'count': count})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+

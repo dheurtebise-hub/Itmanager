@@ -102,13 +102,26 @@ class BackupService:
         self._scheduler_thread.start()
 
     def _scheduler_loop(self):
+        """Boucle du planificateur pour backups et archivage."""
         while not self._stop_scheduler.is_set():
             now = datetime.now()
             if now.hour == self.backup_hour and now.minute == 0:
+                # Créer un backup
                 self.create_backup()
-                time.sleep(3600)
+
+                # Lancer l'archivage automatique des tickets résolus depuis 7 jours
+                try:
+                    from services.archive_service import archive_service
+                    self.logger.info("Lancement de l'archivage automatique des tickets")
+                    result = archive_service.archive_old_resolved_tickets()
+                    self.logger.info(f"Archivage: {result['archived']} tickets archivés, "
+                                   f"{result['moved_emails']} emails déplacés")
+                except Exception as e:
+                    self.logger.error(f"Erreur archivage automatique: {e}")
+
+                time.sleep(3600)  # Attendre 1h pour éviter les doublons
             else:
-                time.sleep(60)
+                time.sleep(60)  # Vérifier chaque minute
 
 
 backup_service = BackupService()

@@ -52,8 +52,24 @@
             <!-- Dossiers Outlook -->
             <div class="form-group">
                 <h3>📁 Dossiers Outlook à surveiller</h3>
-                <button class="btn btn-secondary" onclick="loadOutlookFolders()" style="margin-bottom: 1rem;">Charger les dossiers disponibles</button>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <button class="btn btn-primary" onclick="setupAppFolders()">🔧 Créer les dossiers de l'application</button>
+                    <button class="btn btn-secondary" onclick="loadOutlookFolders()">📋 Charger tous les dossiers</button>
+                </div>
                 <div id="outlookFoldersList" class="mt-2"></div>
+            </div>
+
+            <!-- Archivage automatique -->
+            <div class="form-group">
+                <h3>🗄️ Archivage automatique</h3>
+                <p style="color: #666; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                    Les tickets résolus depuis plus de 7 jours seront automatiquement archivés.
+                </p>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn btn-secondary" onclick="previewArchive()">👁️ Aperçu</button>
+                    <button class="btn btn-warning" onclick="runArchiveNow()">🗑️ Archiver maintenant</button>
+                    <span id="archivePreview" style="margin-left: 1rem; color: #666;"></span>
+                </div>
             </div>
 
             <!-- Thème -->
@@ -204,6 +220,81 @@ function changePriorityBoost(index, value) {
     outlookFolders[index].priority_boost = parseInt(value);
 }
 
+async function setupAppFolders() {
+    if (!confirm('Créer les dossiers App-Import, App-EnCours, App-Cloturé et App-Archives dans Outlook ?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/outlook/setup-folders', { method: 'POST' });
+        const result = await response.json();
+
+        if (result.success) {
+            alert('✅ ' + result.message + '\n\nLa configuration a été mise à jour pour utiliser App-Import.');
+            location.reload(); // Recharger pour voir les nouveaux dossiers
+        } else {
+            alert('❌ Erreur: ' + result.message);
+        }
+    } catch (error) {
+        alert('❌ Erreur: ' + error.message);
+    }
+}
+
+async function previewArchive() {
+    try {
+        const response = await fetch('/api/archive/preview');
+        const result = await response.json();
+
+        const preview = document.getElementById('archivePreview');
+        if (result.count > 0) {
+            preview.textContent = `${result.count} ticket(s) seront archivés`;
+            preview.style.color = '#ff9800';
+        } else {
+            preview.textContent = 'Aucun ticket à archiver';
+            preview.style.color = '#4caf50';
+        }
+    } catch (error) {
+        alert('Erreur: ' + error.message);
+    }
+}
+
+async function runArchiveNow() {
+    // D'abord vérifier combien de tickets seront archivés
+    const previewResponse = await fetch('/api/archive/preview');
+    const previewResult = await previewResponse.json();
+
+    if (previewResult.count === 0) {
+        alert('Aucun ticket à archiver (tickets résolus depuis moins de 7 jours).');
+        return;
+    }
+
+    if (!confirm(`⚠️ Attention!\n\n${previewResult.count} ticket(s) résolus depuis plus de 7 jours seront:\n- Supprimés de la base de données\n- Leurs emails déplacés vers App-Archives\n\nContinuer ?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/archive/run', { method: 'POST' });
+        const result = await response.json();
+
+        if (result.success) {
+            let message = `✅ Archivage terminé!\n\n`;
+            message += `📦 ${result.archived} tickets archivés\n`;
+            message += `📧 ${result.moved_emails} emails déplacés\n`;
+            if (result.errors > 0) {
+                message += `⚠️ ${result.errors} erreur(s)`;
+            }
+            alert(message);
+
+            // Recharger l'aperçu
+            previewArchive();
+        } else {
+            alert('❌ Erreur: ' + result.message);
+        }
+    } catch (error) {
+        alert('❌ Erreur: ' + error.message);
+    }
+}
+
 // Charger la config au démarrage
 document.addEventListener('DOMContentLoaded', async () => {
     const response = await fetch('/api/config');
@@ -218,6 +309,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Afficher message pour charger les dossiers Outlook
     displayOutlookFolders();
+
+    // Charger l'aperçu de l'archivage
+    previewArchive();
 });
 </script>
 {% endblock %}
