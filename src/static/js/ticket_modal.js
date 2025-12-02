@@ -170,18 +170,6 @@ function renderTicketDetails(ticket) {
                 </div>
                 ` : ''}
 
-                ${ticket.resolution ? `
-                <div class="form-group">
-                    <label><strong>Résolution</strong></label>
-                    <textarea id="ticketResolution" rows="3" onchange="updateTicketField('resolution', this.value)">${escapeHtml(ticket.resolution)}</textarea>
-                </div>
-                ` : `
-                <div class="form-group">
-                    <label><strong>Résolution</strong></label>
-                    <textarea id="ticketResolution" rows="3" placeholder="Décrivez la résolution..." onchange="updateTicketField('resolution', this.value)"></textarea>
-                </div>
-                `}
-
                 <div class="form-group">
                     <button class="btn btn-primary btn-sm" onclick="getSuggestion(${ticket.id})">
                         🤖 Suggestion IA
@@ -195,14 +183,6 @@ function renderTicketDetails(ticket) {
                         <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Marquer comme résolu</button>
                     ` : ''}
                 </div>
-
-                ${ticket.status !== 'resolved' && !ticket.is_not_user_request ? `
-                <div class="form-group mt-2">
-                    <button class="btn btn-warning btn-sm w-100" onclick="markAsNotUserRequest(${ticket.id})">
-                        🚫 Ce ticket n'est pas une demande utilisateur
-                    </button>
-                </div>
-                ` : ''}
             </div>
 
             <!-- Colonne droite: Conversation -->
@@ -249,29 +229,13 @@ async function getSuggestion(ticketId) {
 }
 
 async function resolveTicket(ticketId) {
-    const resolutionTextarea = document.getElementById('ticketResolution');
-
-    if (!resolutionTextarea) {
-        console.error('Textarea de résolution introuvable');
-        alert('Erreur: champ de résolution introuvable');
-        return;
-    }
-
-    const resolution = resolutionTextarea.value;
-
-    if (!resolution || resolution.trim() === '') {
-        const confirm = window.confirm('Aucune résolution saisie. Voulez-vous marquer ce ticket comme résolu sans description de résolution ?');
-        if (!confirm) return;
-    }
+    const confirm = window.confirm('Marquer ce ticket comme résolu ?');
+    if (!confirm) return;
 
     try {
         const updates = {
             status: 'resolved'
         };
-
-        if (resolution && resolution.trim()) {
-            updates.resolution = resolution.trim();
-        }
 
         await api.updateTicket(ticketId, updates);
         showNotification('Ticket marqué comme résolu', 'success');
@@ -282,27 +246,6 @@ async function resolveTicket(ticketId) {
         console.error('Error resolving ticket:', error);
         showNotification('Erreur lors de la résolution du ticket', 'error');
         alert(`Erreur: ${error.message || 'Impossible de résoudre le ticket'}`);
-    }
-}
-
-async function markAsNotUserRequest(ticketId) {
-    const confirm = window.confirm(
-        'Marquer ce ticket comme "non-demande utilisateur" ?\n\n' +
-        'Le ticket sera déplacé dans "Résolu", grisé et l\'email sera déplacé dans le dossier "App-à trier".'
-    );
-
-    if (!confirm) return;
-
-    try {
-        await api.markAsNotUserRequest(ticketId);
-        showNotification('Ticket marqué comme non-demande utilisateur', 'success');
-
-        await loadTickets();
-        closeTicketModal();
-    } catch (error) {
-        console.error('Error marking ticket as not user request:', error);
-        showNotification('Erreur lors du marquage du ticket', 'error');
-        alert(`Erreur: ${error.message || 'Impossible de marquer le ticket'}`);
     }
 }
 

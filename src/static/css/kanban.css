@@ -143,6 +143,28 @@
     margin-bottom: 0.5rem;
 }
 
+.ticket-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-not-user-request {
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    opacity: 0.6;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.btn-not-user-request:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
 .ticket-id {
     font-size: 0.75rem;
     color: var(--text-tertiary);

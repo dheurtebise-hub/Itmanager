@@ -69,6 +69,10 @@ function createTicketCard(ticket) {
     const timeAgo = formatTimeAgo(ticket.received_date);
     const notUserRequestClass = ticket.is_not_user_request ? ' not-user-request' : '';
 
+    // Bouton pour marquer comme non-demande utilisateur
+    const notUserRequestButton = (ticket.status !== 'resolved' && !ticket.is_not_user_request) ?
+        `<button class="btn-not-user-request" onclick="event.stopPropagation(); markAsNotUserRequestFromCard(${ticket.id})" title="Ce ticket n'est pas une demande utilisateur">🚫</button>` : '';
+
     return `
         <div class="ticket-card${notUserRequestClass}"
              draggable="true"
@@ -82,7 +86,10 @@ function createTicketCard(ticket) {
              ondblclick="handleTicketDoubleClick(event, ${ticket.id})">
             <div class="ticket-header">
                 <span class="ticket-id">#${ticket.id}</span>
-                ${priorityBadge}
+                <div class="ticket-header-actions">
+                    ${notUserRequestButton}
+                    ${priorityBadge}
+                </div>
             </div>
             <div class="ticket-subject">${escapeHtml(ticket.subject)}</div>
             ${ticket.summary ? `<div class="ticket-summary">${escapeHtml(ticket.summary)}</div>` : ''}
@@ -635,4 +642,22 @@ function createNewProcedure(ticketId) {
 function editProcedure(procedureId) {
     // Ouvrir la modal d'édition en mode modification
     openProcedureModal(null, procedureId);
+}
+
+async function markAsNotUserRequestFromCard(ticketId) {
+    const confirm = window.confirm(
+        'Marquer ce ticket comme "non-demande utilisateur" ?\n\n' +
+        'Le ticket sera déplacé dans "Résolu", grisé et l\'email sera déplacé dans le dossier "App-à trier".'
+    );
+
+    if (!confirm) return;
+
+    try {
+        await api.markAsNotUserRequest(ticketId);
+        showNotification('Ticket marqué comme non-demande utilisateur', 'success');
+        await loadTickets();
+    } catch (error) {
+        console.error('Error marking ticket as not user request:', error);
+        showNotification('Erreur lors du marquage du ticket', 'error');
+    }
 }
