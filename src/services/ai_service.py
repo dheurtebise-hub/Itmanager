@@ -98,8 +98,16 @@ Réponds UNIQUEMENT avec un JSON valide:
             self.logger.error(f"Erreur catégorisation IA: {e}")
             # En cas d'erreur, utiliser au moins les règles simples si disponibles
             if use_simple_category:
+                # Ajouter un résumé basique si manquant
+                if 'summary' not in simple_result:
+                    simple_result['summary'] = ticket_data.get('subject', '')
                 return simple_result
-            return {'category': 'autre', 'priority': 'medium', 'confidence': 0}
+            return {
+                'category': 'autre',
+                'priority': 'medium',
+                'confidence': 0,
+                'summary': ticket_data.get('subject', '')
+            }
 
     def _simple_categorization(self, ticket_data: Dict[str, Any]) -> Dict[str, Any]:
         """Catégorisation par règles simples."""
