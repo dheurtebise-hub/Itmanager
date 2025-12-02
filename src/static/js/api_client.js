@@ -103,6 +103,13 @@ class APIClient {
         });
     }
 
+    async createProcedureManually(procedureData) {
+        return this.request('/api/procedures', {
+            method: 'POST',
+            body: JSON.stringify(procedureData),
+        });
+    }
+
     async submitProcedureFeedback(procedureId, ticketId, feedbackType) {
         return this.request('/api/procedures/feedback', {
             method: 'POST',

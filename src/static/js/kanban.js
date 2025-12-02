@@ -596,6 +596,11 @@ function createProcedureCard(procedure, ticketId) {
                         </button>
                     </div>
                 </div>
+                <div class="procedure-actions">
+                    <button class="btn-procedure btn-procedure-primary" onclick="editProcedure(${procedure.id})">
+                        ✏️ Modifier
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -621,36 +626,12 @@ async function submitProcedureFeedback(procedureId, ticketId, feedbackType) {
     }
 }
 
-async function createNewProcedure(ticketId) {
-    const procedureContent = document.getElementById('procedure-content');
-    if (!procedureContent) return;
+function createNewProcedure(ticketId) {
+    // Ouvrir la modal d'édition de procédure
+    openProcedureModal(ticketId);
+}
 
-    // Afficher le loading
-    const ticket = allTickets.find(t => t.id === ticketId);
-    procedureContent.innerHTML = `
-        <div class="procedure-selected-ticket">
-            <div class="procedure-selected-ticket-title">Ticket sélectionné</div>
-            <div class="procedure-selected-ticket-subject">${escapeHtml(ticket.subject)}</div>
-            <div class="procedure-selected-ticket-id">#${ticket.id}</div>
-        </div>
-
-        <div class="procedure-loading">
-            <div class="procedure-loading-spinner">⏳</div>
-            <div style="margin-top: 1rem;">Création de la procédure avec l'IA...</div>
-        </div>
-    `;
-
-    try {
-        // Appeler l'API pour créer une nouvelle procédure basée sur le ticket
-        const newProcedure = await api.createProcedureFromTicket(ticketId);
-
-        showNotification('✅ Nouvelle procédure créée avec succès !', 'success');
-
-        // Afficher la nouvelle procédure
-        await showProceduresForTicket(ticketId);
-    } catch (error) {
-        console.error('Error creating procedure:', error);
-        showNotification('❌ Erreur lors de la création de la procédure', 'error');
-        renderCreateProcedureDialog(ticket);
-    }
+function editProcedure(procedureId) {
+    // Ouvrir la modal d'édition en mode modification
+    openProcedureModal(null, procedureId);
 }

@@ -101,6 +101,47 @@ def get_all_procedures():
         return jsonify({'error': 'Internal server error'}), 500
 
 
+@procedure_bp.route('/api/procedures', methods=['POST'])
+@rate_limit()
+def create_procedure_manually():
+    """Crée une nouvelle procédure manuellement."""
+    try:
+        data = request.get_json()
+
+        # Validation
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        required_fields = ['title', 'category', 'steps']
+        missing = [f for f in required_fields if f not in data or not data[f]]
+        if missing:
+            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+        # Créer la procédure
+        from models.procedure import Procedure
+        procedure_id = Procedure.create({
+            'title': data['title'],
+            'description': data.get('description', ''),
+            'category': data['category'],
+            'steps': data['steps'],
+            'keywords': data.get('keywords', []),
+            'source_ticket_id': data.get('source_ticket_id'),
+            'created_by': 'manual'
+        })
+
+        # Lier au ticket si spécifié
+        if data.get('source_ticket_id'):
+            Procedure.link_to_ticket(procedure_id, data['source_ticket_id'], confidence=0.9)
+
+        # Retourner la procédure créée
+        procedure = Procedure.get_by_id(procedure_id)
+        return jsonify(procedure), 201
+
+    except Exception as e:
+        logger.error(f"Error creating procedure manually: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
 @procedure_bp.route('/api/procedures/<int:procedure_id>', methods=['GET'])
 @rate_limit()
 def get_procedure(procedure_id):

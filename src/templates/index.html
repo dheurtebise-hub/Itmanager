@@ -150,6 +150,75 @@
     </div>
 </div>
 
+<!-- Modal Édition Procédure -->
+<div class="modal" id="procedureModal">
+    <div class="modal-overlay" onclick="closeProcedureModal()"></div>
+    <div class="modal-content modal-procedure">
+        <div class="modal-header">
+            <h2 id="procedureModalTitle">Créer une procédure</h2>
+            <button class="btn-close" onclick="closeProcedureModal()">✕</button>
+        </div>
+
+        <div class="modal-body">
+            <form id="procedureForm" onsubmit="saveProcedure(event)">
+                <input type="hidden" id="procedureId" value="">
+                <input type="hidden" id="procedureSourceTicketId" value="">
+
+                <!-- Titre -->
+                <div class="form-group">
+                    <label for="procedureTitle">Titre de la procédure *</label>
+                    <input type="text" id="procedureTitle" class="form-control" required placeholder="Ex: Installation de Kofax Power PDF">
+                </div>
+
+                <!-- Catégorie -->
+                <div class="form-group">
+                    <label for="procedureCategory">Catégorie *</label>
+                    <select id="procedureCategory" class="form-control" required>
+                        <option value="">Sélectionner une catégorie</option>
+                        <option value="installation_logiciel">💿 Installation logiciel</option>
+                        <option value="depannage_materiel">🔧 Dépannage matériel</option>
+                        <option value="demande_licence">🔑 Demande licence</option>
+                        <option value="support_applicatif">💻 Support applicatif</option>
+                        <option value="reseau">🌐 Réseau</option>
+                        <option value="securite">🔒 Sécurité</option>
+                        <option value="autre">📋 Autre</option>
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label for="procedureDescription">Description</label>
+                    <textarea id="procedureDescription" class="form-control" rows="3" placeholder="Description courte du problème et de la solution"></textarea>
+                </div>
+
+                <!-- Mots-clés -->
+                <div class="form-group">
+                    <label for="procedureKeywords">Mots-clés (séparés par des virgules)</label>
+                    <input type="text" id="procedureKeywords" class="form-control" placeholder="Ex: kofax, pdf, installation, logiciel">
+                    <small class="form-help">Les mots-clés aident à retrouver cette procédure</small>
+                </div>
+
+                <!-- Étapes -->
+                <div class="form-group">
+                    <label>Étapes de la procédure *</label>
+                    <div id="procedureSteps">
+                        <!-- Les étapes seront ajoutées ici dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addProcedureStep()">
+                        ➕ Ajouter une étape
+                    </button>
+                </div>
+
+                <!-- Actions -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeProcedureModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -157,6 +226,7 @@
 <script src="{{ url_for('static', filename='js/kanban.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ticket_modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/keyboard_shortcuts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/procedure_editor.js') }}"></script>
 <script>
 // Charger les tickets au démarrage
 document.addEventListener('DOMContentLoaded', () => {
