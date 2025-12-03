@@ -92,6 +92,13 @@ class SLAService:
         for ticket in resolved:
             received = datetime.fromisoformat(ticket['received_date'])
             resolved_at = datetime.fromisoformat(ticket['resolved_at'])
+
+            # Retirer les infos de timezone pour éviter les erreurs de soustraction
+            if received.tzinfo is not None:
+                received = received.replace(tzinfo=None)
+            if resolved_at.tzinfo is not None:
+                resolved_at = resolved_at.replace(tzinfo=None)
+
             resolution_time = (resolved_at - received).total_seconds() / 60
             resolution_times.append(resolution_time)
 
