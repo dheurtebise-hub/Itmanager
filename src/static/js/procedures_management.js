@@ -210,102 +210,17 @@ async function editProcedureFromList(procedureId) {
         // Fermer le modal de liste
         closeProceduresListModal();
 
-        // Charger la procédure
-        const response = await fetch(`/api/procedures/${procedureId}`);
-        if (!response.ok) {
-            throw new Error('Procédure non trouvée');
+        // Utiliser la fonction d'édition standard de procedure_editor.js
+        if (typeof openProcedureModal === 'function') {
+            openProcedureModal(null, procedureId);
+        } else {
+            throw new Error('Fonction d\'édition non disponible');
         }
-
-        const procedure = await response.json();
-
-        // Ouvrir le modal d'édition
-        openEditProcedureModal(procedure);
 
     } catch (error) {
         console.error('Error loading procedure for edit:', error);
         showNotification('❌ Erreur lors du chargement de la procédure', 'error');
     }
-}
-
-// Ouvrir le modal d'édition de procédure
-function openEditProcedureModal(procedure) {
-    try {
-        // Remplir le formulaire
-        document.getElementById('procedureId').value = procedure.id || '';
-        document.getElementById('procedureTitle').value = procedure.title || '';
-        document.getElementById('procedureCategory').value = procedure.category || '';
-        document.getElementById('procedureDescription').value = procedure.description || '';
-
-        // Gérer les mots-clés (peut être string JSON ou array)
-        let keywords = [];
-        if (procedure.keywords) {
-            if (typeof procedure.keywords === 'string') {
-                try {
-                    keywords = JSON.parse(procedure.keywords);
-                } catch (e) {
-                    console.warn('Failed to parse keywords:', e);
-                    keywords = [];
-                }
-            } else if (Array.isArray(procedure.keywords)) {
-                keywords = procedure.keywords;
-            }
-        }
-        document.getElementById('procedureKeywords').value = keywords.join(', ');
-
-        // Gérer les étapes (peut être string JSON ou array)
-        let steps = [];
-        if (procedure.steps) {
-            if (typeof procedure.steps === 'string') {
-                try {
-                    steps = JSON.parse(procedure.steps);
-                } catch (e) {
-                    console.warn('Failed to parse steps:', e);
-                    steps = [];
-                }
-            } else if (Array.isArray(procedure.steps)) {
-                steps = procedure.steps;
-            }
-        }
-
-        // Remplir les étapes
-        const stepsContainer = document.getElementById('procedureSteps');
-        stepsContainer.innerHTML = '';
-
-        if (steps.length > 0) {
-            steps.forEach((step) => {
-                addProcedureStepWithValue(step);
-            });
-        } else {
-            // Ajouter au moins une étape vide
-            addProcedureStepWithValue('');
-        }
-
-        // Changer le titre du modal
-        document.getElementById('procedureModalTitle').textContent = 'Modifier la procédure';
-
-        // Ouvrir le modal
-        document.getElementById('procedureModal').style.display = 'flex';
-    } catch (error) {
-        console.error('Error opening edit modal:', error);
-        showNotification('❌ Erreur lors de l\'ouverture du formulaire d\'édition', 'error');
-    }
-}
-
-// Ajouter une étape avec une valeur
-function addProcedureStepWithValue(value = '') {
-    const stepsContainer = document.getElementById('procedureSteps');
-    const stepIndex = stepsContainer.children.length;
-
-    const stepDiv = document.createElement('div');
-    stepDiv.className = 'procedure-step-item';
-    stepDiv.innerHTML = `
-        <span class="step-number">${stepIndex + 1}.</span>
-        <input type="text" class="form-control step-input" placeholder="Description de l'étape" value="${escapeHtml(value)}" required>
-        <button type="button" class="btn-icon btn-remove-step" onclick="removeProcedureStep(this)">🗑️</button>
-    `;
-
-    stepsContainer.appendChild(stepDiv);
-    updateStepNumbers();
 }
 
 // Supprimer une procédure

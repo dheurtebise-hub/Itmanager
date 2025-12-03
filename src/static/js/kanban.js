@@ -231,10 +231,24 @@ async function initialImport() {
 }
 
 function showNotification(message, type = 'info') {
-    // Créer une notification temporaire VISIBLE
+    // Créer une notification temporaire VISIBLE avec bouton de fermeture
     const notif = document.createElement('div');
     notif.className = `sync-notification sync-${type}`;
-    notif.textContent = message;
+
+    // Créer le contenu avec message et bouton de fermeture
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close-btn';
+    closeBtn.innerHTML = '✕';
+    closeBtn.onclick = () => {
+        notif.classList.remove('show');
+        setTimeout(() => notif.remove(), 300);
+    };
+
+    notif.appendChild(messageSpan);
+    notif.appendChild(closeBtn);
 
     document.body.appendChild(notif);
 
@@ -245,7 +259,7 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notif.classList.remove('show');
         setTimeout(() => notif.remove(), 300);
-    }, 8000); // 8 secondes au lieu de 5
+    }, 8000); // 8 secondes
 }
 
 // Stats
