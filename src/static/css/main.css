@@ -652,9 +652,15 @@ input:focus, select:focus, textarea:focus {
 }
 
 .procedures-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
+}
+
+@media (max-width: 1200px) {
+    .procedures-list {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* PROCEDURE CARD - SIMPLIFIED VERSION */
@@ -672,7 +678,8 @@ input:focus, select:focus, textarea:focus {
 .procedure-card-simple:hover {
     background: var(--bg-secondary);
     border-color: var(--accent-primary);
-    transform: translateX(4px);
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .procedure-card-content {
