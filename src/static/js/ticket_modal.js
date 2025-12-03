@@ -172,7 +172,10 @@ function renderTicketDetails(ticket) {
 
                 <div class="flex gap-2 mt-3">
                     <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
-                    ${ticket.status !== 'resolved' ? `
+                    ${ticket.status === 'new' ? `
+                        <button class="btn btn-primary" onclick="markAsInProgress(${ticket.id})">⚙️ Marquer comme En cours</button>
+                    ` : ''}
+                    ${ticket.status === 'in_progress' ? `
                         <button class="btn btn-success" onclick="resolveTicket(${ticket.id})">✅ Marquer comme résolu</button>
                     ` : ''}
                 </div>
@@ -201,6 +204,24 @@ async function updateTicketField(field, value) {
     } catch (error) {
         console.error('Error updating ticket:', error);
         alert('Erreur lors de la mise à jour');
+    }
+}
+
+async function markAsInProgress(ticketId) {
+    try {
+        const updates = {
+            status: 'in_progress'
+        };
+
+        await api.updateTicket(ticketId, updates);
+        showNotification('Ticket marqué comme En cours', 'success');
+
+        await loadTickets();
+        closeTicketModal();
+    } catch (error) {
+        console.error('Error marking ticket as in progress:', error);
+        showNotification('Erreur lors de la mise à jour du ticket', 'error');
+        alert(`Erreur: ${error.message || 'Impossible de mettre à jour le ticket'}`);
     }
 }
 
