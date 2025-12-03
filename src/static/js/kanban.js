@@ -258,7 +258,7 @@ async function loadStats() {
 
         // Charger le nombre de procédures
         const procedures = await api.getProcedures();
-        document.getElementById('stat-procedures').textContent = procedures.procedures?.length || 0;
+        document.getElementById('stat-procedures').textContent = procedures?.length || 0;
     } catch (error) {
         console.error('Error loading stats:', error);
     }

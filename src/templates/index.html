@@ -62,6 +62,7 @@
             </select>
         </div>
         <div class="toolbar-right">
+            <button class="btn btn-secondary" onclick="openProceduresListModal()">📋 Procédures</button>
             <button class="btn btn-secondary" onclick="exportTickets('csv')">📊 Export CSV</button>
         </div>
     </div>
@@ -300,6 +301,38 @@
     </div>
 </div>
 
+<!-- Modal Liste des Procédures -->
+<div class="modal" id="proceduresListModal">
+    <div class="modal-overlay" onclick="closeProceduresListModal()"></div>
+    <div class="modal-content modal-procedures-list">
+        <div class="modal-header">
+            <h2>📋 Gestion des Procédures</h2>
+            <button class="btn-close" onclick="closeProceduresListModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="procedures-list-toolbar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="proceduresSearchInput" placeholder="Rechercher une procédure..." onkeyup="filterProceduresList()">
+                </div>
+                <select id="proceduresCategoryFilter" onchange="filterProceduresList()">
+                    <option value="">Toutes les catégories</option>
+                    <option value="installation_logiciel">💿 Installation logiciel</option>
+                    <option value="depannage_materiel">🔧 Dépannage matériel</option>
+                    <option value="demande_licence">🔑 Demande licence</option>
+                    <option value="support_applicatif">💻 Support applicatif</option>
+                    <option value="reseau">🌐 Réseau</option>
+                    <option value="securite">🔒 Sécurité</option>
+                    <option value="autre">📋 Autre</option>
+                </select>
+            </div>
+            <div id="proceduresList" class="procedures-list-container">
+                <!-- Les procédures seront chargées ici -->
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -309,6 +342,7 @@
 <script src="{{ url_for('static', filename='js/keyboard_shortcuts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/procedure_editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/procedure_import.js') }}"></script>
+<script src="{{ url_for('static', filename='js/procedures_management.js') }}"></script>
 <script>
 // Charger les tickets au démarrage
 document.addEventListener('DOMContentLoaded', () => {
