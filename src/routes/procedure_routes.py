@@ -314,3 +314,32 @@ Réponds au format JSON avec les clés suivantes:
     except Exception as e:
         logger.error(f"Error importing procedure: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@procedure_bp.route('/api/ai/generate-keywords', methods=['POST'])
+@rate_limit()
+def generate_keywords():
+    """Génère des mots-clés pour une procédure avec l'IA."""
+    try:
+        data = request.get_json()
+
+        # Validation
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        title = data.get('title', '')
+        category = data.get('category', '')
+        content = data.get('content', '')
+
+        if not title:
+            return jsonify({'error': 'Title is required'}), 400
+
+        # Utiliser l'IA pour générer les mots-clés
+        from services.ai_service import ai_service
+        keywords = ai_service.generate_keywords(title, category, content)
+
+        return jsonify({'keywords': keywords}), 200
+
+    except Exception as e:
+        logger.error(f"Error generating keywords: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

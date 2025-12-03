@@ -259,5 +259,54 @@ Maximum 150 mots."""
         """)
         return result['total'] if result else 0.0
 
+    def generate_keywords(self, title: str, category: str, content: str) -> List[str]:
+        """Génère des mots-clés pertinents pour une procédure."""
+        if not self.client:
+            # Fallback: extraire des mots du titre
+            return title.lower().split()[:5]
+
+        model = config.get('ai_model_categorize', 'claude-haiku-4-5-20251001')
+
+        prompt = f"""Génère une liste de mots-clés pertinents pour cette procédure technique.
+
+TITRE: {title}
+CATÉGORIE: {category}
+CONTENU: {content[:500]}
+
+Génère 5-10 mots-clés en français qui aideront à retrouver cette procédure lors d'une recherche.
+Les mots-clés doivent être:
+- Pertinents et spécifiques
+- Courts (1-3 mots maximum)
+- En minuscules
+- Sans articles (le, la, les, etc.)
+
+Réponds UNIQUEMENT avec un tableau JSON de mots-clés:
+["mot1", "mot2", "mot3", ...]"""
+
+        try:
+            response = self.client.messages.create(
+                model=model,
+                max_tokens=150,
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            result_text = response.content[0].text.strip()
+            # Nettoyer la réponse
+            result_text = result_text.replace('```json', '').replace('```', '').strip()
+
+            keywords = json.loads(result_text)
+            self._track_cost(model, response.usage)
+
+            # S'assurer que c'est une liste
+            if isinstance(keywords, list):
+                return [str(k).lower() for k in keywords[:10]]
+            else:
+                return []
+
+        except Exception as e:
+            self.logger.error(f"Erreur génération mots-clés: {e}")
+            # Fallback: extraire des mots du titre
+            return title.lower().split()[:5]
+
 
 ai_service = AIService()

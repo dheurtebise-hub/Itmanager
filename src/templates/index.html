@@ -201,17 +201,11 @@
                     </select>
                 </div>
 
-                <!-- Description -->
-                <div class="form-group">
-                    <label for="procedureDescription">Description</label>
-                    <textarea id="procedureDescription" class="form-control" rows="3" placeholder="Description courte du problème et de la solution"></textarea>
-                </div>
-
-                <!-- Mots-clés -->
-                <div class="form-group">
-                    <label for="procedureKeywords">Mots-clés (séparés par des virgules)</label>
-                    <input type="text" id="procedureKeywords" class="form-control" placeholder="Ex: kofax, pdf, installation, logiciel">
-                    <small class="form-help">Les mots-clés aident à retrouver cette procédure</small>
+                <!-- Mots-clés (générés automatiquement) -->
+                <div class="form-group" style="display:none;">
+                    <label for="procedureKeywords">Mots-clés (générés automatiquement par l'IA)</label>
+                    <input type="text" id="procedureKeywords" class="form-control" readonly>
+                    <small class="form-help">Les mots-clés sont générés automatiquement lors de l'enregistrement</small>
                 </div>
 
                 <!-- Étapes -->

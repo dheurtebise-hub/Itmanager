@@ -70,7 +70,6 @@ async function loadProcedureData(procedureId) {
         // Remplir le formulaire
         document.getElementById('procedureTitle').value = proc.title || '';
         document.getElementById('procedureCategory').value = proc.category || '';
-        document.getElementById('procedureDescription').value = proc.description || '';
 
         // Mots-clés
         if (proc.keywords && Array.isArray(proc.keywords)) {
@@ -313,8 +312,6 @@ async function saveProcedure(event) {
     const sourceTicketId = document.getElementById('procedureSourceTicketId').value;
     const title = document.getElementById('procedureTitle').value.trim();
     const category = document.getElementById('procedureCategory').value;
-    const description = document.getElementById('procedureDescription').value.trim();
-    const keywordsStr = document.getElementById('procedureKeywords').value.trim();
 
     // Validation
     if (!title) {
@@ -332,24 +329,61 @@ async function saveProcedure(event) {
         return;
     }
 
-    // Vérifier que toutes les étapes ont du contenu
-    const emptySteps = currentProcedureSteps.filter(step => !step.content || !step.content.trim());
+    // Vérifier que toutes les étapes ont du contenu réel (pas juste du HTML vide)
+    const emptySteps = currentProcedureSteps.filter(step => {
+        if (!step.content) return true;
+        // Créer un élément temporaire pour extraire le texte
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = step.content;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        return textContent.trim().length === 0;
+    });
+
     if (emptySteps.length > 0) {
         showNotification('⚠️ Toutes les étapes doivent avoir du contenu', 'warning');
         return;
     }
 
-    // Préparer les mots-clés
-    const keywords = keywordsStr ? keywordsStr.split(',').map(k => k.trim()).filter(k => k) : [];
-
-    // Préparer les étapes (texte seulement pour l'instant)
+    // Préparer les étapes
     const steps = currentProcedureSteps.map(step => step.content);
 
-    // Préparer les données
+    // Générer les mots-clés automatiquement avec l'IA
+    showNotification('🤖 Génération des mots-clés...', 'info');
+
+    let keywords = [];
+    try {
+        // Extraire le texte brut des étapes
+        const stepsText = steps.map(step => {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = step;
+            return tempDiv.textContent || tempDiv.innerText || '';
+        }).join(' ');
+
+        const aiResponse = await fetch('/api/ai/generate-keywords', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                category: category,
+                content: stepsText.substring(0, 500) // Limiter la taille
+            })
+        });
+
+        if (aiResponse.ok) {
+            const result = await aiResponse.json();
+            keywords = result.keywords || [];
+        }
+    } catch (error) {
+        console.warn('Could not generate keywords with AI:', error);
+        // Fallback : extraire des mots du titre
+        keywords = title.toLowerCase().split(/\s+/).filter(w => w.length > 3).slice(0, 5);
+    }
+
+    // Préparer les données (sans description)
     const procedureData = {
         title,
         category,
-        description,
+        description: '', // Toujours vide maintenant
         keywords,
         steps,
         source_ticket_id: sourceTicketId ? parseInt(sourceTicketId) : null
