@@ -307,11 +307,16 @@ function renderMediaPreviews(stepIndex, medias) {
 async function saveProcedure(event) {
     event.preventDefault();
 
+    console.log('💾 Starting procedure save...');
+
     // Récupérer les données du formulaire
     const procedureId = document.getElementById('procedureId').value;
     const sourceTicketId = document.getElementById('procedureSourceTicketId').value;
     const title = document.getElementById('procedureTitle').value.trim();
     const category = document.getElementById('procedureCategory').value;
+
+    console.log('📝 Form data:', { procedureId, sourceTicketId, title, category });
+    console.log('📋 Current steps:', currentProcedureSteps);
 
     // Validation
     if (!title) {
@@ -329,17 +334,32 @@ async function saveProcedure(event) {
         return;
     }
 
+    // Mettre à jour le contenu depuis les éditeurs Quill avant validation
+    quillEditors.forEach((quill, index) => {
+        if (currentProcedureSteps[index]) {
+            currentProcedureSteps[index].content = quill.root.innerHTML;
+        }
+    });
+
+    console.log('📋 Steps after Quill update:', currentProcedureSteps);
+
     // Vérifier que toutes les étapes ont du contenu réel (pas juste du HTML vide)
-    const emptySteps = currentProcedureSteps.filter(step => {
-        if (!step.content) return true;
+    const emptySteps = currentProcedureSteps.filter((step, idx) => {
+        if (!step.content) {
+            console.log(`⚠️ Step ${idx + 1}: No content`);
+            return true;
+        }
         // Créer un élément temporaire pour extraire le texte
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = step.content;
         const textContent = tempDiv.textContent || tempDiv.innerText || '';
-        return textContent.trim().length === 0;
+        const isEmpty = textContent.trim().length === 0;
+        console.log(`📄 Step ${idx + 1} text length: ${textContent.trim().length}, isEmpty: ${isEmpty}`);
+        return isEmpty;
     });
 
     if (emptySteps.length > 0) {
+        console.log('⚠️ Empty steps found:', emptySteps.length);
         showNotification('⚠️ Toutes les étapes doivent avoir du contenu', 'warning');
         return;
     }
@@ -349,6 +369,7 @@ async function saveProcedure(event) {
 
     // Générer les mots-clés automatiquement avec l'IA
     showNotification('🤖 Génération des mots-clés...', 'info');
+    console.log('🤖 Generating keywords...');
 
     let keywords = [];
     try {
@@ -358,6 +379,8 @@ async function saveProcedure(event) {
             tempDiv.innerHTML = step;
             return tempDiv.textContent || tempDiv.innerText || '';
         }).join(' ');
+
+        console.log('📝 Steps text for keywords:', stepsText.substring(0, 100) + '...');
 
         const aiResponse = await fetch('/api/ai/generate-keywords', {
             method: 'POST',
@@ -369,14 +392,22 @@ async function saveProcedure(event) {
             })
         });
 
+        console.log('🔍 AI Response status:', aiResponse.status);
+
         if (aiResponse.ok) {
             const result = await aiResponse.json();
             keywords = result.keywords || [];
+            console.log('✅ Keywords generated:', keywords);
+        } else {
+            const errorText = await aiResponse.text();
+            console.warn('⚠️ AI Response error:', errorText);
+            throw new Error(`API returned ${aiResponse.status}`);
         }
     } catch (error) {
-        console.warn('Could not generate keywords with AI:', error);
+        console.warn('⚠️ Could not generate keywords with AI:', error);
         // Fallback : extraire des mots du titre
         keywords = title.toLowerCase().split(/\s+/).filter(w => w.length > 3).slice(0, 5);
+        console.log('📝 Fallback keywords:', keywords);
     }
 
     // Préparer les données (sans description)
@@ -389,19 +420,26 @@ async function saveProcedure(event) {
         source_ticket_id: sourceTicketId ? parseInt(sourceTicketId) : null
     };
 
+    console.log('📦 Procedure data to save:', procedureData);
+
     try {
         let savedProcedure;
 
         if (procedureId) {
             // Mise à jour
+            console.log('🔄 Updating procedure:', procedureId);
             await api.updateProcedure(procedureId, procedureData);
             savedProcedure = { id: procedureId, ...procedureData };
             showNotification('✅ Procédure mise à jour avec succès !', 'success');
         } else {
             // Création manuelle
+            console.log('➕ Creating new procedure...');
             savedProcedure = await api.createProcedureManually(procedureData);
+            console.log('✅ Procedure created:', savedProcedure);
             showNotification('✅ Procédure créée avec succès !', 'success');
         }
+
+        console.log('🎉 Procedure saved successfully!');
 
         // Fermer la modal
         closeProcedureModal();
@@ -412,7 +450,7 @@ async function saveProcedure(event) {
         }
 
     } catch (error) {
-        console.error('Error saving procedure:', error);
-        showNotification('❌ Erreur lors de la sauvegarde de la procédure', 'error');
+        console.error('❌ Error saving procedure:', error);
+        showNotification('❌ Erreur lors de la sauvegarde de la procédure: ' + error.message, 'error');
     }
 }
