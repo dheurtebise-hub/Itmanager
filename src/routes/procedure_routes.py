@@ -207,3 +207,103 @@ def delete_procedure(procedure_id):
     except Exception as e:
         logger.error(f"Error deleting procedure {procedure_id}: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@procedure_bp.route('/api/procedures/import/single', methods=['POST'])
+@rate_limit()
+def import_single_procedure():
+    """Importe une procédure depuis un fichier."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        ai_reformulation = request.form.get('ai_reformulation', 'false').lower() == 'true'
+
+        # Lire le contenu du fichier
+        content = file.read().decode('utf-8', errors='ignore')
+
+        # Extraire le titre depuis le nom de fichier (sans extension)
+        import os
+        title = os.path.splitext(file.filename)[0]
+
+        # Si reformulation IA activée
+        if ai_reformulation:
+            try:
+                from services.ai_service import ai_service
+
+                # Utiliser l'IA pour reformuler la procédure
+                prompt = f"""Reformule cette procédure technique en gardant toutes les informations importantes.
+
+Titre: {title}
+
+Contenu:
+{content}
+
+Instructions:
+1. Extrais et reformule la description principale
+2. Identifie et structure les étapes clairement
+3. Extrait les mots-clés pertinents
+4. Détermine la catégorie (Logiciel, Matériel, Réseau, etc.)
+
+Réponds au format JSON avec les clés suivantes:
+{{
+    "title": "titre reformulé",
+    "description": "description courte et claire",
+    "steps": ["étape 1", "étape 2", ...],
+    "keywords": ["mot1", "mot2", ...],
+    "category": "catégorie"
+}}"""
+
+                reformulation = ai_service.chat(prompt)
+
+                # Parser la réponse JSON
+                import json
+                import re
+
+                # Extraire le JSON de la réponse
+                json_match = re.search(r'\{.*\}', reformulation, re.DOTALL)
+                if json_match:
+                    procedure_data = json.loads(json_match.group())
+                else:
+                    raise ValueError("Impossible de parser la réponse de l'IA")
+
+            except Exception as e:
+                logger.error(f"Error with AI reformulation: {e}")
+                # Fallback : créer la procédure sans reformulation
+                procedure_data = {
+                    'title': title,
+                    'description': content[:200] if len(content) > 200 else content,
+                    'steps': [content],
+                    'keywords': [title.lower()],
+                    'category': 'Autre'
+                }
+        else:
+            # Créer la procédure sans reformulation
+            procedure_data = {
+                'title': title,
+                'description': content[:200] if len(content) > 200 else content,
+                'steps': [content],
+                'keywords': [title.lower()],
+                'category': 'Autre'
+            }
+
+        # Ajouter created_by
+        procedure_data['created_by'] = 'import'
+
+        # Créer la procédure
+        procedure_id = procedure_service.create_procedure(procedure_data)
+
+        if procedure_id:
+            from models.procedure import Procedure
+            procedure = Procedure.get_by_id(procedure_id)
+            return jsonify({'status': 'success', 'procedure': procedure}), 200
+        else:
+            return jsonify({'error': 'Failed to create procedure'}), 500
+
+    except Exception as e:
+        logger.error(f"Error importing procedure: {e}")
+        return jsonify({'error': str(e)}), 500

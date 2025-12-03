@@ -65,7 +65,8 @@ body {
 }
 
 .app-header {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-primary-dark));
+    background: linear-gradient(135deg, #E8DCC8, #D4C7B3);
+    color: var(--text-primary);
 }
 
 .card, .ticket-card, .modal-content {

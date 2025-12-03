@@ -134,6 +134,10 @@
                     <span>📋</span>
                     <span>Procédure</span>
                 </div>
+                <div class="procedure-actions">
+                    <button class="btn-icon" onclick="openImportSingleProcedureModal()" title="Importer une procédure">📥</button>
+                    <button class="btn-icon" onclick="openImportBatchProceduresModal()" title="Importer plusieurs procédures">📦</button>
+                </div>
             </div>
             <div class="procedure-content" id="procedure-content">
                 <div class="procedure-empty-state">
@@ -238,6 +242,72 @@
     </div>
 </div>
 
+<!-- Modal Import Procédure Unique -->
+<div class="modal" id="importSingleModal">
+    <div class="modal-overlay" onclick="closeImportSingleModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📥 Importer une procédure</h2>
+            <button class="btn-close" onclick="closeImportSingleModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="importSingleForm" onsubmit="importSingleProcedure(event)">
+                <div class="form-group">
+                    <label for="singleProcedureFile">Fichier de procédure *</label>
+                    <input type="file" id="singleProcedureFile" class="form-control" accept=".doc,.docx,.pdf,.txt,.md" required>
+                    <small class="form-help">Formats acceptés : DOC, DOCX, PDF, TXT, MD</small>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="aiReformulation" checked>
+                        Reformuler avec l'IA et réutiliser les visuels
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeImportSingleModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">📥 Importer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Import Procédures en Groupe -->
+<div class="modal" id="importBatchModal">
+    <div class="modal-overlay" onclick="closeImportBatchModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>📦 Importer plusieurs procédures</h2>
+            <button class="btn-close" onclick="closeImportBatchModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="importBatchForm" onsubmit="importBatchProcedures(event)">
+                <div class="form-group">
+                    <label for="batchProcedureFiles">Fichiers de procédures *</label>
+                    <input type="file" id="batchProcedureFiles" class="form-control" accept=".doc,.docx,.pdf,.txt,.md" multiple required>
+                    <small class="form-help">Sélectionnez plusieurs fichiers (DOC, DOCX, PDF, TXT, MD)</small>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="batchAiReformulation" checked>
+                        Reformuler avec l'IA et réutiliser les visuels
+                    </label>
+                </div>
+                <div id="batchImportProgress" style="display:none;">
+                    <div class="progress-bar">
+                        <div id="batchProgressBar" class="progress-fill"></div>
+                    </div>
+                    <p id="batchProgressText">0 / 0 procédures importées</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeImportBatchModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="batchImportBtn">📦 Importer tout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -246,6 +316,7 @@
 <script src="{{ url_for('static', filename='js/ticket_modal.js') }}"></script>
 <script src="{{ url_for('static', filename='js/keyboard_shortcuts.js') }}"></script>
 <script src="{{ url_for('static', filename='js/procedure_editor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/procedure_import.js') }}"></script>
 <script>
 // Charger les tickets au démarrage
 document.addEventListener('DOMContentLoaded', () => {

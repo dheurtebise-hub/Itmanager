@@ -70,6 +70,26 @@
     gap: 0.5rem;
 }
 
+.procedure-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--bg-hover);
+    transform: scale(1.1);
+}
+
 .column-count {
     background: var(--bg-tertiary);
     color: var(--text-secondary);
