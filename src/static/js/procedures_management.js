@@ -32,10 +32,35 @@ function filterProceduresList() {
     const category = document.getElementById('proceduresCategoryFilter').value;
 
     filteredProcedures = allProcedures.filter(proc => {
-        const matchesSearch = !searchTerm ||
-            proc.title.toLowerCase().includes(searchTerm) ||
-            (proc.description && proc.description.toLowerCase().includes(searchTerm)) ||
-            (proc.keywords && proc.keywords.some(kw => kw.toLowerCase().includes(searchTerm)));
+        let matchesSearch = !searchTerm;
+
+        if (searchTerm && !matchesSearch) {
+            // Recherche dans le titre
+            matchesSearch = proc.title && proc.title.toLowerCase().includes(searchTerm);
+
+            // Recherche dans la description
+            if (!matchesSearch && proc.description) {
+                matchesSearch = proc.description.toLowerCase().includes(searchTerm);
+            }
+
+            // Recherche dans les mots-clés
+            if (!matchesSearch && proc.keywords) {
+                let keywords = proc.keywords;
+                // Parser si c'est une string
+                if (typeof keywords === 'string') {
+                    try {
+                        keywords = JSON.parse(keywords);
+                    } catch (e) {
+                        keywords = [];
+                    }
+                }
+                if (Array.isArray(keywords)) {
+                    matchesSearch = keywords.some(kw =>
+                        kw && kw.toString().toLowerCase().includes(searchTerm)
+                    );
+                }
+            }
+        }
 
         const matchesCategory = !category || proc.category === category;
 
@@ -64,70 +89,119 @@ function renderProceduresList() {
 
 // Afficher une carte de procédure
 function renderProcedureCard(procedure) {
-    const categoryIcons = {
-        'installation_logiciel': '💿',
-        'depannage_materiel': '🔧',
-        'demande_licence': '🔑',
-        'support_applicatif': '💻',
-        'reseau': '🌐',
-        'securite': '🔒',
-        'autre': '📋'
-    };
+    try {
+        const categoryIcons = {
+            'installation_logiciel': '💿',
+            'depannage_materiel': '🔧',
+            'demande_licence': '🔑',
+            'support_applicatif': '💻',
+            'reseau': '🌐',
+            'securite': '🔒',
+            'autre': '📋'
+        };
 
-    const icon = categoryIcons[procedure.category] || '📋';
-    const usageCount = procedure.usage_count || 0;
-    const createdBy = procedure.created_by || 'unknown';
-    const createdDate = procedure.created_at ? new Date(procedure.created_at).toLocaleDateString('fr-FR') : 'N/A';
+        const icon = categoryIcons[procedure.category] || '📋';
+        const usageCount = procedure.usage_count || 0;
+        const createdBy = procedure.created_by || 'unknown';
+        const createdDate = procedure.created_at ? new Date(procedure.created_at).toLocaleDateString('fr-FR') : 'N/A';
 
-    // Afficher les mots-clés
-    let keywordsHtml = '';
-    if (procedure.keywords && Array.isArray(procedure.keywords) && procedure.keywords.length > 0) {
-        keywordsHtml = procedure.keywords.slice(0, 5).map(kw =>
-            `<span class="procedure-keyword">${escapeHtml(kw)}</span>`
-        ).join('');
-    }
+        // Titre sécurisé
+        const title = procedure.title || 'Sans titre';
 
-    return `
-        <div class="procedure-card">
-            <div class="procedure-card-header">
-                <div class="procedure-title">
-                    <span class="procedure-icon">${icon}</span>
-                    <span>${escapeHtml(procedure.title)}</span>
+        // Gérer les mots-clés (peut être string JSON ou array)
+        let keywords = [];
+        if (procedure.keywords) {
+            if (typeof procedure.keywords === 'string') {
+                try {
+                    keywords = JSON.parse(procedure.keywords);
+                } catch (e) {
+                    keywords = [];
+                }
+            } else if (Array.isArray(procedure.keywords)) {
+                keywords = procedure.keywords;
+            }
+        }
+
+        // Afficher les mots-clés
+        let keywordsHtml = '';
+        if (keywords.length > 0) {
+            keywordsHtml = keywords.slice(0, 5).map(kw => {
+                const keyword = kw || '';
+                return `<span class="procedure-keyword">${escapeHtml(keyword.toString())}</span>`;
+            }).join('');
+        }
+
+        // Gérer les étapes (peut être string JSON ou array)
+        let steps = [];
+        if (procedure.steps) {
+            if (typeof procedure.steps === 'string') {
+                try {
+                    steps = JSON.parse(procedure.steps);
+                } catch (e) {
+                    steps = [];
+                }
+            } else if (Array.isArray(procedure.steps)) {
+                steps = procedure.steps;
+            }
+        }
+
+        return `
+            <div class="procedure-card">
+                <div class="procedure-card-header">
+                    <div class="procedure-title">
+                        <span class="procedure-icon">${icon}</span>
+                        <span>${escapeHtml(title)}</span>
+                    </div>
+                    <div class="procedure-actions">
+                        <button class="btn-icon" onclick="editProcedureFromList(${procedure.id})" title="Modifier">✏️</button>
+                        <button class="btn-icon" onclick="deleteProcedureFromList(${procedure.id})" title="Supprimer">🗑️</button>
+                    </div>
                 </div>
-                <div class="procedure-actions">
-                    <button class="btn-icon" onclick="editProcedureFromList(${procedure.id})" title="Modifier">✏️</button>
-                    <button class="btn-icon" onclick="deleteProcedureFromList(${procedure.id})" title="Supprimer">🗑️</button>
+
+                ${procedure.description ? `
+                    <div class="procedure-description">
+                        ${escapeHtml(procedure.description)}
+                    </div>
+                ` : ''}
+
+                ${keywordsHtml ? `
+                    <div class="procedure-keywords">
+                        ${keywordsHtml}
+                    </div>
+                ` : ''}
+
+                <div class="procedure-meta">
+                    <span title="Nombre d'utilisations">📊 ${usageCount} utilisations</span>
+                    <span title="Créé le">📅 ${createdDate}</span>
+                    <span title="Créé par">👤 ${createdBy}</span>
                 </div>
+
+                ${steps.length > 0 ? `
+                    <details class="procedure-steps-details">
+                        <summary>📝 ${steps.length} étape(s)</summary>
+                        <ol class="procedure-steps-list">
+                            ${steps.map(step => `<li>${escapeHtml(step || '')}</li>`).join('')}
+                        </ol>
+                    </details>
+                ` : ''}
             </div>
-
-            ${procedure.description ? `
+        `;
+    } catch (error) {
+        console.error('Error rendering procedure card:', error, procedure);
+        return `
+            <div class="procedure-card">
+                <div class="procedure-card-header">
+                    <div class="procedure-title">
+                        <span class="procedure-icon">⚠️</span>
+                        <span>Erreur de chargement</span>
+                    </div>
+                </div>
                 <div class="procedure-description">
-                    ${escapeHtml(procedure.description)}
+                    Une erreur s'est produite lors de l'affichage de cette procédure.
                 </div>
-            ` : ''}
-
-            ${keywordsHtml ? `
-                <div class="procedure-keywords">
-                    ${keywordsHtml}
-                </div>
-            ` : ''}
-
-            <div class="procedure-meta">
-                <span title="Nombre d'utilisations">📊 ${usageCount} utilisations</span>
-                <span title="Créé le">📅 ${createdDate}</span>
-                <span title="Créé par">👤 ${createdBy}</span>
             </div>
-
-            ${procedure.steps && procedure.steps.length > 0 ? `
-                <details class="procedure-steps-details">
-                    <summary>📝 ${procedure.steps.length} étape(s)</summary>
-                    <ol class="procedure-steps-list">
-                        ${procedure.steps.map(step => `<li>${escapeHtml(step)}</li>`).join('')}
-                    </ol>
-                </details>
-            ` : ''}
-        </div>
-    `;
+        `;
+    }
 }
 
 // Modifier une procédure depuis la liste
@@ -155,32 +229,66 @@ async function editProcedureFromList(procedureId) {
 
 // Ouvrir le modal d'édition de procédure
 function openEditProcedureModal(procedure) {
-    // Remplir le formulaire
-    document.getElementById('procedureId').value = procedure.id;
-    document.getElementById('procedureTitle').value = procedure.title;
-    document.getElementById('procedureCategory').value = procedure.category || '';
-    document.getElementById('procedureDescription').value = procedure.description || '';
+    try {
+        // Remplir le formulaire
+        document.getElementById('procedureId').value = procedure.id || '';
+        document.getElementById('procedureTitle').value = procedure.title || '';
+        document.getElementById('procedureCategory').value = procedure.category || '';
+        document.getElementById('procedureDescription').value = procedure.description || '';
 
-    // Remplir les mots-clés
-    if (procedure.keywords && Array.isArray(procedure.keywords)) {
-        document.getElementById('procedureKeywords').value = procedure.keywords.join(', ');
+        // Gérer les mots-clés (peut être string JSON ou array)
+        let keywords = [];
+        if (procedure.keywords) {
+            if (typeof procedure.keywords === 'string') {
+                try {
+                    keywords = JSON.parse(procedure.keywords);
+                } catch (e) {
+                    console.warn('Failed to parse keywords:', e);
+                    keywords = [];
+                }
+            } else if (Array.isArray(procedure.keywords)) {
+                keywords = procedure.keywords;
+            }
+        }
+        document.getElementById('procedureKeywords').value = keywords.join(', ');
+
+        // Gérer les étapes (peut être string JSON ou array)
+        let steps = [];
+        if (procedure.steps) {
+            if (typeof procedure.steps === 'string') {
+                try {
+                    steps = JSON.parse(procedure.steps);
+                } catch (e) {
+                    console.warn('Failed to parse steps:', e);
+                    steps = [];
+                }
+            } else if (Array.isArray(procedure.steps)) {
+                steps = procedure.steps;
+            }
+        }
+
+        // Remplir les étapes
+        const stepsContainer = document.getElementById('procedureSteps');
+        stepsContainer.innerHTML = '';
+
+        if (steps.length > 0) {
+            steps.forEach((step) => {
+                addProcedureStepWithValue(step);
+            });
+        } else {
+            // Ajouter au moins une étape vide
+            addProcedureStepWithValue('');
+        }
+
+        // Changer le titre du modal
+        document.getElementById('procedureModalTitle').textContent = 'Modifier la procédure';
+
+        // Ouvrir le modal
+        document.getElementById('procedureModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Error opening edit modal:', error);
+        showNotification('❌ Erreur lors de l\'ouverture du formulaire d\'édition', 'error');
     }
-
-    // Remplir les étapes
-    const stepsContainer = document.getElementById('procedureSteps');
-    stepsContainer.innerHTML = '';
-
-    if (procedure.steps && Array.isArray(procedure.steps)) {
-        procedure.steps.forEach((step, index) => {
-            addProcedureStepWithValue(step);
-        });
-    }
-
-    // Changer le titre du modal
-    document.getElementById('procedureModalTitle').textContent = 'Modifier la procédure';
-
-    // Ouvrir le modal
-    document.getElementById('procedureModal').style.display = 'flex';
 }
 
 // Ajouter une étape avec une valeur
