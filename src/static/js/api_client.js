@@ -44,12 +44,6 @@ class APIClient {
         });
     }
 
-    async markAsNotUserRequest(id) {
-        return this.request(`/api/tickets/${id}/mark-not-user-request`, {
-            method: 'POST',
-        });
-    }
-
     async getSuggestion(id) {
         return this.request(`/api/tickets/${id}/suggest`);
     }
@@ -130,6 +124,10 @@ class APIClient {
     async getProcedures(filters = {}) {
         const params = new URLSearchParams(filters).toString();
         return this.request(`/api/procedures${params ? '?' + params : ''}`);
+    }
+
+    async getProcedure(procedureId) {
+        return this.request(`/api/procedures/${procedureId}`);
     }
 
     async updateProcedure(procedureId, data) {

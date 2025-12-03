@@ -58,15 +58,13 @@ function closeProcedureModal() {
  */
 async function loadProcedureData(procedureId) {
     try {
-        const procedure = await api.getProcedures({ id: procedureId });
+        const proc = await api.getProcedure(procedureId);
 
-        if (!procedure || procedure.length === 0) {
+        if (!proc) {
             showNotification('❌ Procédure introuvable', 'error');
             closeProcedureModal();
             return;
         }
-
-        const proc = procedure[0];
 
         // Remplir le formulaire
         document.getElementById('procedureTitle').value = proc.title || '';

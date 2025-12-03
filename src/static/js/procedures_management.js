@@ -204,6 +204,19 @@ function renderProcedureCard(procedure) {
     }
 }
 
+// Créer une nouvelle procédure depuis la liste
+function createNewProcedure() {
+    // Fermer le modal de liste
+    closeProceduresListModal();
+
+    // Ouvrir le modal d'édition en mode création
+    if (typeof openProcedureModal === 'function') {
+        openProcedureModal(null, null);
+    } else {
+        showNotification('❌ Fonction de création non disponible', 'error');
+    }
+}
+
 // Modifier une procédure depuis la liste
 async function editProcedureFromList(procedureId) {
     try {
