@@ -111,13 +111,6 @@ function renderTicketDetails(ticket) {
         { value: 'resolved', label: '✅ Résolu' }
     ];
 
-    const priorityOptions = [
-        { value: 'urgent', label: '🔴 Urgent' },
-        { value: 'high', label: '🟠 Élevée' },
-        { value: 'medium', label: '🟡 Moyenne' },
-        { value: 'low', label: '🟢 Faible' }
-    ];
-
     return `
         <div class="ticket-modal-header">
             <h2>Ticket #${ticket.id}</h2>
@@ -147,15 +140,6 @@ function renderTicketDetails(ticket) {
                     <select id="ticketStatus" onchange="updateTicketField('status', this.value)">
                         ${statusOptions.map(opt =>
                             `<option value="${opt.value}" ${ticket.status === opt.value ? 'selected' : ''}>${opt.label}</option>`
-                        ).join('')}
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label><strong>Priorité</strong></label>
-                    <select id="ticketPriority" onchange="updateTicketField('priority', this.value)">
-                        ${priorityOptions.map(opt =>
-                            `<option value="${opt.value}" ${ticket.priority === opt.value ? 'selected' : ''}>${opt.label}</option>`
                         ).join('')}
                     </select>
                 </div>

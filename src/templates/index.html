@@ -60,17 +60,9 @@
             <select id="categoryFilter" onchange="filterTickets()">
                 <option value="">Toutes les catégories</option>
             </select>
-            <select id="priorityFilter" onchange="filterTickets()">
-                <option value="">Toutes les priorités</option>
-                <option value="urgent">🔴 Urgent</option>
-                <option value="high">🟠 Élevée</option>
-                <option value="medium">🟡 Moyenne</option>
-                <option value="low">🟢 Faible</option>
-            </select>
         </div>
         <div class="toolbar-right">
             <button class="btn btn-secondary" onclick="exportTickets('csv')">📊 Export CSV</button>
-            <button class="btn btn-secondary" onclick="showStats()">📈 Statistiques</button>
         </div>
     </div>
 

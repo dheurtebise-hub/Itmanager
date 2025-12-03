@@ -64,7 +64,6 @@ function renderTickets() {
 }
 
 function createTicketCard(ticket) {
-    const priorityBadge = getPriorityBadge(ticket.priority);
     const timeAgo = formatTimeAgo(ticket.received_date);
     const notUserRequestClass = ticket.is_not_user_request ? ' not-user-request' : '';
     const personIcon = getPersonIcon(ticket.sender_name || ticket.sender_email);
@@ -87,7 +86,6 @@ function createTicketCard(ticket) {
                 <span class="ticket-id">#${ticket.id}</span>
                 <div class="ticket-header-actions">
                     ${notUserRequestButton}
-                    ${priorityBadge}
                 </div>
             </div>
             <div class="ticket-subject">${escapeHtml(ticket.subject)}</div>
@@ -111,16 +109,6 @@ function getPersonIcon(name) {
     const isFemale = femaleNames.some(fn => lowerName.includes(fn));
 
     return isFemale ? '👷‍♀️' : '👷';
-}
-
-function getPriorityBadge(priority) {
-    const badges = {
-        urgent: '<span class="badge badge-urgent">🔴 Urgent</span>',
-        high: '<span class="badge badge-high">🟠 Élevée</span>',
-        medium: '<span class="badge badge-medium">🟡 Moyenne</span>',
-        low: '<span class="badge badge-low">🟢 Faible</span>',
-    };
-    return badges[priority] || '';
 }
 
 function getSLAIndicator(slaStatus) {
@@ -276,18 +264,12 @@ async function loadStats() {
     }
 }
 
-function showStats() {
-    alert('Statistiques détaillées à venir dans une prochaine version');
-}
-
 // Export
 function exportTickets(format) {
     const category = document.getElementById('categoryFilter')?.value || '';
-    const priority = document.getElementById('priorityFilter')?.value || '';
 
     const filters = {};
     if (category) filters.category = category;
-    if (priority) filters.priority = priority;
 
     const url = api.getExportURL(format, filters);
     window.open(url, '_blank');
