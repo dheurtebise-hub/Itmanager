@@ -59,6 +59,7 @@ function closeProcedureModal() {
  */
 async function loadProcedureData(procedureId) {
     try {
+        console.log('📥 Loading procedure data for ID:', procedureId);
         const proc = await api.getProcedure(procedureId);
 
         if (!proc) {
@@ -66,6 +67,8 @@ async function loadProcedureData(procedureId) {
             closeProcedureModal();
             return;
         }
+
+        console.log('📄 Loaded procedure:', proc);
 
         // Remplir le formulaire
         document.getElementById('procedureTitle').value = proc.title || '';
@@ -76,12 +79,28 @@ async function loadProcedureData(procedureId) {
             document.getElementById('procedureKeywords').value = proc.keywords.join(', ');
         }
 
-        // Étapes
-        currentProcedureSteps = proc.steps || [];
+        // Étapes - convertir en objets si nécessaire
+        if (proc.steps && Array.isArray(proc.steps)) {
+            currentProcedureSteps = proc.steps.map(step => {
+                // Si step est déjà un objet avec content, le garder tel quel
+                if (typeof step === 'object' && step.content) {
+                    return step;
+                }
+                // Sinon, c'est une chaîne HTML, la convertir en objet
+                return {
+                    content: typeof step === 'string' ? step : '',
+                    medias: []
+                };
+            });
+        } else {
+            currentProcedureSteps = [];
+        }
+
+        console.log('📋 Loaded steps:', currentProcedureSteps);
         renderProcedureSteps();
 
     } catch (error) {
-        console.error('Error loading procedure:', error);
+        console.error('❌ Error loading procedure:', error);
         showNotification('❌ Erreur lors du chargement de la procédure', 'error');
     }
 }

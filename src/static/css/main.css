@@ -617,3 +617,94 @@ input:focus, select:focus, textarea:focus {
 .step-content-editor .ql-toolbar .ql-active .ql-fill {
     fill: var(--accent-primary);
 }
+
+/* PROCEDURES LIST - GROUPED BY CATEGORY */
+.procedures-category {
+    margin-bottom: 2rem;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--accent-primary);
+}
+
+.category-icon {
+    font-size: 1.5rem;
+}
+
+.category-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.category-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+
+.procedures-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* PROCEDURE CARD - SIMPLIFIED VERSION */
+.procedure-card-simple {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.procedure-card-simple:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    transform: translateX(4px);
+}
+
+.procedure-card-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.procedure-title-simple {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.procedure-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.procedure-actions .btn-icon {
+    padding: 0.4rem 0.6rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.procedure-actions .btn-icon:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+}

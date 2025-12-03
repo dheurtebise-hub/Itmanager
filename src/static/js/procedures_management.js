@@ -84,120 +84,78 @@ function renderProceduresList() {
         return;
     }
 
-    container.innerHTML = filteredProcedures.map(proc => renderProcedureCard(proc)).join('');
+    // Grouper par catégorie
+    const categoryIcons = {
+        'logiciel': '💿',
+        'materiel': '🔧',
+        'reseau': '🌐',
+        'securite': '🔒',
+        'autre': '📋'
+    };
+
+    const categoryLabels = {
+        'logiciel': 'Logiciel',
+        'materiel': 'Matériel',
+        'reseau': 'Réseau',
+        'securite': 'Sécurité',
+        'autre': 'Autre'
+    };
+
+    const grouped = {};
+    filteredProcedures.forEach(proc => {
+        const cat = proc.category || 'autre';
+        if (!grouped[cat]) {
+            grouped[cat] = [];
+        }
+        grouped[cat].push(proc);
+    });
+
+    // Générer le HTML par catégorie
+    let html = '';
+    Object.keys(grouped).sort().forEach(category => {
+        const procedures = grouped[category];
+        const icon = categoryIcons[category] || '📋';
+        const label = categoryLabels[category] || category;
+
+        html += `
+            <div class="procedures-category">
+                <div class="category-header">
+                    <span class="category-icon">${icon}</span>
+                    <h3>${label}</h3>
+                    <span class="category-count">(${procedures.length})</span>
+                </div>
+                <div class="procedures-list">
+                    ${procedures.map(proc => renderProcedureCard(proc)).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
 }
 
-// Afficher une carte de procédure
+// Afficher une carte de procédure (version simplifiée)
 function renderProcedureCard(procedure) {
     try {
-        const categoryIcons = {
-            'installation_logiciel': '💿',
-            'depannage_materiel': '🔧',
-            'demande_licence': '🔑',
-            'support_applicatif': '💻',
-            'reseau': '🌐',
-            'securite': '🔒',
-            'autre': '📋'
-        };
-
-        const icon = categoryIcons[procedure.category] || '📋';
-        const usageCount = procedure.usage_count || 0;
-        const createdBy = procedure.created_by || 'unknown';
-        const createdDate = procedure.created_at ? new Date(procedure.created_at).toLocaleDateString('fr-FR') : 'N/A';
-
-        // Titre sécurisé
         const title = procedure.title || 'Sans titre';
 
-        // Gérer les mots-clés (peut être string JSON ou array)
-        let keywords = [];
-        if (procedure.keywords) {
-            if (typeof procedure.keywords === 'string') {
-                try {
-                    keywords = JSON.parse(procedure.keywords);
-                } catch (e) {
-                    keywords = [];
-                }
-            } else if (Array.isArray(procedure.keywords)) {
-                keywords = procedure.keywords;
-            }
-        }
-
-        // Afficher les mots-clés
-        let keywordsHtml = '';
-        if (keywords.length > 0) {
-            keywordsHtml = keywords.slice(0, 5).map(kw => {
-                const keyword = kw || '';
-                return `<span class="procedure-keyword">${escapeHtml(keyword.toString())}</span>`;
-            }).join('');
-        }
-
-        // Gérer les étapes (peut être string JSON ou array)
-        let steps = [];
-        if (procedure.steps) {
-            if (typeof procedure.steps === 'string') {
-                try {
-                    steps = JSON.parse(procedure.steps);
-                } catch (e) {
-                    steps = [];
-                }
-            } else if (Array.isArray(procedure.steps)) {
-                steps = procedure.steps;
-            }
-        }
-
         return `
-            <div class="procedure-card">
-                <div class="procedure-card-header">
-                    <div class="procedure-title">
-                        <span class="procedure-icon">${icon}</span>
-                        <span>${escapeHtml(title)}</span>
-                    </div>
-                    <div class="procedure-actions">
-                        <button class="btn-icon" onclick="editProcedureFromList(${procedure.id})" title="Modifier">✏️</button>
-                        <button class="btn-icon" onclick="deleteProcedureFromList(${procedure.id})" title="Supprimer">🗑️</button>
-                    </div>
+            <div class="procedure-card-simple">
+                <div class="procedure-card-content">
+                    <span class="procedure-title-simple">${escapeHtml(title)}</span>
                 </div>
-
-                ${procedure.description ? `
-                    <div class="procedure-description">
-                        ${escapeHtml(procedure.description)}
-                    </div>
-                ` : ''}
-
-                ${keywordsHtml ? `
-                    <div class="procedure-keywords">
-                        ${keywordsHtml}
-                    </div>
-                ` : ''}
-
-                <div class="procedure-meta">
-                    <span title="Nombre d'utilisations">📊 ${usageCount} utilisations</span>
-                    <span title="Créé le">📅 ${createdDate}</span>
-                    <span title="Créé par">👤 ${createdBy}</span>
+                <div class="procedure-actions">
+                    <button class="btn-icon" onclick="editProcedureFromList(${procedure.id})" title="Modifier">✏️</button>
+                    <button class="btn-icon" onclick="deleteProcedureFromList(${procedure.id})" title="Supprimer">🗑️</button>
                 </div>
-
-                ${steps.length > 0 ? `
-                    <details class="procedure-steps-details">
-                        <summary>📝 ${steps.length} étape(s)</summary>
-                        <ol class="procedure-steps-list">
-                            ${steps.map(step => `<li>${escapeHtml(step || '')}</li>`).join('')}
-                        </ol>
-                    </details>
-                ` : ''}
             </div>
         `;
     } catch (error) {
         console.error('Error rendering procedure card:', error, procedure);
         return `
-            <div class="procedure-card">
-                <div class="procedure-card-header">
-                    <div class="procedure-title">
-                        <span class="procedure-icon">⚠️</span>
-                        <span>Erreur de chargement</span>
-                    </div>
-                </div>
-                <div class="procedure-description">
-                    Une erreur s'est produite lors de l'affichage de cette procédure.
+            <div class="procedure-card-simple">
+                <div class="procedure-card-content">
+                    <span class="procedure-title-simple">⚠️ Erreur de chargement</span>
                 </div>
             </div>
         `;
