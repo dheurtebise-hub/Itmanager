@@ -224,7 +224,14 @@ def import_single_procedure():
         ai_reformulation = request.form.get('ai_reformulation', 'false').lower() == 'true'
 
         # Lire le contenu du fichier
-        content = file.read().decode('utf-8', errors='ignore')
+        file_content = file.read()
+
+        # Extraire le texte selon le format du fichier
+        from utils.file_parser import extract_text_from_file
+        content = extract_text_from_file(file_content, file.filename)
+
+        if not content:
+            return jsonify({'error': 'Impossible d\'extraire le texte du fichier. Vérifiez le format.'}), 400
 
         # Extraire le titre depuis le nom de fichier (sans extension)
         import os
