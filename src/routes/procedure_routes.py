@@ -295,10 +295,10 @@ Réponds au format JSON avec les clés suivantes:
         procedure_data['created_by'] = 'import'
 
         # Créer la procédure
-        procedure_id = procedure_service.create_procedure(procedure_data)
+        from models.procedure import Procedure
+        procedure_id = Procedure.create(procedure_data)
 
         if procedure_id:
-            from models.procedure import Procedure
             procedure = Procedure.get_by_id(procedure_id)
             return jsonify({'status': 'success', 'procedure': procedure}), 200
         else:
