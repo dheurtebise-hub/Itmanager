@@ -1,32 +1,32 @@
 /* SYSTÈME DE THÈMES */
 
 :root, [data-theme="light"] {
-    --bg-primary: #FAFAFA;
-    --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F4F5F7;
-    --bg-card: #FFFFFF;
-    --bg-hover: #F0F0F0;
+    --bg-primary: #F5F1E8;
+    --bg-secondary: #FAF8F3;
+    --bg-tertiary: #EBE6DA;
+    --bg-card: #FAF8F3;
+    --bg-hover: #E8E3D6;
 
-    --text-primary: #1C1B1F;
-    --text-secondary: #49454F;
-    --text-tertiary: #79747E;
+    --text-primary: #3E3428;
+    --text-secondary: #6B5D4F;
+    --text-tertiary: #8F7F6D;
 
-    --border-color: #E0E0E0;
+    --border-color: #D4C7B3;
 
-    --accent-primary: #1976D2;
-    --accent-primary-dark: #1565C0;
+    --accent-primary: #B8860B;
+    --accent-primary-dark: #9B7209;
 
-    --status-success: #4CAF50;
-    --status-warning: #FF9800;
-    --status-error: #F44336;
+    --status-success: #7A9B76;
+    --status-warning: #D4A76A;
+    --status-error: #C17A74;
 
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.12);
-    --shadow-md: 0 3px 6px rgba(0,0,0,0.16);
+    --shadow-sm: 0 1px 3px rgba(62,52,40,0.15);
+    --shadow-md: 0 3px 6px rgba(62,52,40,0.20);
 
-    --kanban-new: #E3F2FD;
-    --kanban-progress: #FFF3E0;
-    --kanban-resolved: #E8F5E9;
-    --kanban-closed: #F3E5F5;
+    --kanban-new: #FDF8F0;
+    --kanban-progress: #F5E8D3;
+    --kanban-resolved: #E8EBE0;
+    --kanban-closed: #F0ECE5;
 }
 
 [data-theme="dark"] {

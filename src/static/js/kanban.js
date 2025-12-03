@@ -65,9 +65,9 @@ function renderTickets() {
 
 function createTicketCard(ticket) {
     const priorityBadge = getPriorityBadge(ticket.priority);
-    const slaIndicator = getSLAIndicator(ticket.sla_status);
     const timeAgo = formatTimeAgo(ticket.received_date);
     const notUserRequestClass = ticket.is_not_user_request ? ' not-user-request' : '';
+    const personIcon = getPersonIcon(ticket.sender_name || ticket.sender_email);
 
     // Bouton pour marquer comme non-demande utilisateur (visible sauf si déjà marqué)
     const notUserRequestButton = !ticket.is_not_user_request ?
@@ -79,7 +79,6 @@ function createTicketCard(ticket) {
              data-ticket-id="${ticket.id}"
              data-ticket-status="${ticket.status}"
              data-ticket-subject="${escapeHtml(ticket.subject)}"
-             data-ticket-summary="${escapeHtml(ticket.summary || '')}"
              ondragstart="handleDragStart(event)"
              ondragend="handleDragEnd(event)"
              onclick="handleTicketSingleClick(event, ${ticket.id})"
@@ -92,20 +91,26 @@ function createTicketCard(ticket) {
                 </div>
             </div>
             <div class="ticket-subject">${escapeHtml(ticket.subject)}</div>
-            ${ticket.summary ? `<div class="ticket-summary">${escapeHtml(ticket.summary)}</div>` : ''}
-            <div class="ticket-meta">
+            <div class="ticket-info">
                 <div class="ticket-sender">
-                    <span>👤</span>
-                    <span>${escapeHtml(ticket.sender_email)}</span>
+                    ${personIcon} ${escapeHtml(ticket.sender_name || ticket.sender_email)}
                 </div>
-                <span>${timeAgo}</span>
-            </div>
-            <div class="ticket-footer">
-                ${ticket.category ? `<span class="category-tag">${ticket.category}</span>` : ''}
-                ${slaIndicator}
+                <div class="ticket-date">${timeAgo}</div>
             </div>
         </div>
     `;
+}
+
+function getPersonIcon(name) {
+    // Détection basique du genre par les prénoms féminins courants
+    const femaleNames = ['marie', 'sophie', 'julie', 'claire', 'anne', 'isabelle', 'catherine', 'nathalie',
+                         'sylvie', 'martine', 'christine', 'florence', 'sandrine', 'valérie', 'laurence',
+                         'camille', 'emma', 'léa', 'chloé', 'manon', 'sarah', 'laura', 'alice'];
+
+    const lowerName = (name || '').toLowerCase();
+    const isFemale = femaleNames.some(fn => lowerName.includes(fn));
+
+    return isFemale ? '👷‍♀️' : '👷';
 }
 
 function getPriorityBadge(priority) {
@@ -263,15 +268,9 @@ async function loadStats() {
         document.getElementById('stat-today').textContent = stats.today || 0;
         document.getElementById('stat-week').textContent = stats.this_week || 0;
 
-        if (stats.sla_report) {
-            document.getElementById('stat-sla').textContent =
-                `${stats.sla_report.sla_compliance_rate || 0}%`;
-        }
-
-        if (stats.api_cost_this_month !== undefined) {
-            document.getElementById('stat-cost').textContent =
-                `${stats.api_cost_this_month.toFixed(2)}€`;
-        }
+        // Charger le nombre de procédures
+        const procedures = await api.getProcedures();
+        document.getElementById('stat-procedures').textContent = procedures.procedures?.length || 0;
     } catch (error) {
         console.error('Error loading stats:', error);
     }
