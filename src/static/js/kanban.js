@@ -65,10 +65,15 @@ function renderTickets() {
 
 function createTicketCard(ticket) {
     const timeAgo = formatTimeAgo(ticket.received_date);
+    const notUserRequestClass = ticket.is_not_user_request ? ' not-user-request' : '';
     const personIcon = getPersonIcon(ticket.sender_name || ticket.sender_email);
 
+    // Bouton pour marquer comme non-demande utilisateur (visible sauf si déjà marqué)
+    const notUserRequestButton = !ticket.is_not_user_request ?
+        `<button class="btn-not-user-request" onclick="event.stopPropagation(); markAsNotUserRequestFromCard(${ticket.id})" title="Ce ticket n'est pas une demande utilisateur">🚫</button>` : '';
+
     return `
-        <div class="ticket-card"
+        <div class="ticket-card${notUserRequestClass}"
              draggable="true"
              data-ticket-id="${ticket.id}"
              data-ticket-status="${ticket.status}"
@@ -79,6 +84,9 @@ function createTicketCard(ticket) {
              ondblclick="handleTicketDoubleClick(event, ${ticket.id})">
             <div class="ticket-header">
                 <span class="ticket-id">#${ticket.id}</span>
+                <div class="ticket-header-actions">
+                    ${notUserRequestButton}
+                </div>
             </div>
             <div class="ticket-subject">${escapeHtml(ticket.subject)}</div>
             <div class="ticket-info">
@@ -629,5 +637,23 @@ function createNewProcedure(ticketId) {
 function editProcedure(procedureId) {
     // Ouvrir la modal d'édition en mode modification
     openProcedureModal(null, procedureId);
+}
+
+async function markAsNotUserRequestFromCard(ticketId) {
+    const confirmed = window.confirm(
+        'Marquer ce ticket comme "non-demande utilisateur" ?\n\n' +
+        'Le ticket sera marqué et pourra être filtré séparément.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+        await api.markAsNotUserRequest(ticketId);
+        showNotification('✅ Ticket marqué comme non-demande utilisateur', 'success');
+        await loadTickets();
+    } catch (error) {
+        console.error('Error marking ticket as not user request:', error);
+        showNotification('❌ Erreur lors du marquage du ticket', 'error');
+    }
 }
 

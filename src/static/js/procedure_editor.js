@@ -164,7 +164,7 @@ function renderProcedureSteps() {
             <textarea
                 class="step-content-input"
                 placeholder="Décrivez cette étape..."
-                onchange="updateStepContent(${index}, this.value)"
+                oninput="updateStepContent(${index}, this.value)"
             >${escapeHtml(step.content || '')}</textarea>
 
             <div class="step-media-upload">
