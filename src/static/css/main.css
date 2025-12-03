@@ -546,3 +546,74 @@ input:focus, select:focus, textarea:focus {
     line-height: 1.5;
     color: var(--text-secondary);
 }
+
+/* Quill Editor Styles */
+.step-content-editor {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    min-height: 200px;
+    margin-bottom: 1rem;
+}
+
+.step-content-editor .ql-toolbar {
+    background: var(--bg-secondary);
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 8px 8px 0 0;
+    padding: 0.75rem;
+}
+
+.step-content-editor .ql-container {
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    min-height: 150px;
+}
+
+.step-content-editor .ql-editor {
+    min-height: 150px;
+    padding: 1rem;
+}
+
+.step-content-editor .ql-editor.ql-blank::before {
+    color: var(--text-tertiary);
+    font-style: normal;
+}
+
+/* Ajustements des boutons de la toolbar */
+.step-content-editor .ql-toolbar button {
+    color: var(--text-primary);
+}
+
+.step-content-editor .ql-toolbar button:hover {
+    color: var(--accent-primary);
+}
+
+.step-content-editor .ql-toolbar .ql-stroke {
+    stroke: var(--text-primary);
+}
+
+.step-content-editor .ql-toolbar button:hover .ql-stroke {
+    stroke: var(--accent-primary);
+}
+
+.step-content-editor .ql-toolbar .ql-fill {
+    fill: var(--text-primary);
+}
+
+.step-content-editor .ql-toolbar button:hover .ql-fill {
+    fill: var(--accent-primary);
+}
+
+.step-content-editor .ql-toolbar .ql-active {
+    color: var(--accent-primary);
+}
+
+.step-content-editor .ql-toolbar .ql-active .ql-stroke {
+    stroke: var(--accent-primary);
+}
+
+.step-content-editor .ql-toolbar .ql-active .ql-fill {
+    fill: var(--accent-primary);
+}

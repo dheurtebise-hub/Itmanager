@@ -39,9 +39,34 @@ class Database:
                     conn.executescript(schema)
                 conn.commit()
             self.logger.info("Database initialized successfully")
+
+            # Exécuter les migrations
+            self._run_migrations()
+
         except Exception as e:
             self.logger.error(f"Error initializing database: {e}")
             raise
+
+    def _run_migrations(self):
+        """Exécute les migrations nécessaires."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Vérifier si la colonne is_not_user_request existe
+                cursor.execute("PRAGMA table_info(tickets)")
+                columns = [col[1] for col in cursor.fetchall()]
+
+                if 'is_not_user_request' not in columns:
+                    self.logger.info("Adding is_not_user_request column to tickets table")
+                    cursor.execute("ALTER TABLE tickets ADD COLUMN is_not_user_request BOOLEAN DEFAULT 0")
+                    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tickets_is_not_user_request ON tickets(is_not_user_request)")
+                    conn.commit()
+                    self.logger.info("Migration completed: is_not_user_request column added")
+
+        except Exception as e:
+            self.logger.error(f"Error running migrations: {e}")
+            # Ne pas lever l'exception pour ne pas bloquer le démarrage
 
     @contextmanager
     def get_connection(self):

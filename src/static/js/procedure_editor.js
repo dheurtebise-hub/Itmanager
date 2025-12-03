@@ -2,6 +2,7 @@
 
 let currentProcedureSteps = [];
 let procedureMediaFiles = new Map(); // Map<stepIndex, File[]>
+let quillEditors = new Map(); // Map<stepIndex, Quill>
 
 /**
  * Ouvre la modal pour créer une nouvelle procédure
@@ -147,8 +148,12 @@ function renderProcedureSteps() {
 
     if (currentProcedureSteps.length === 0) {
         container.innerHTML = '<p class="form-help">Aucune étape. Cliquez sur "Ajouter une étape" pour commencer.</p>';
+        quillEditors.clear();
         return;
     }
+
+    // Nettoyer les anciens éditeurs
+    quillEditors.clear();
 
     container.innerHTML = currentProcedureSteps.map((step, index) => `
         <div class="procedure-step-item" data-step-index="${index}">
@@ -161,11 +166,7 @@ function renderProcedureSteps() {
                 </div>
             </div>
 
-            <textarea
-                class="step-content-input"
-                placeholder="Décrivez cette étape..."
-                oninput="updateStepContent(${index}, this.value)"
-            >${escapeHtml(step.content || '')}</textarea>
+            <div id="editor-${index}" class="step-content-editor"></div>
 
             <div class="step-media-upload">
                 <label class="media-upload-btn">
@@ -182,6 +183,39 @@ function renderProcedureSteps() {
             </div>
         </div>
     `).join('');
+
+    // Initialiser les éditeurs Quill
+    currentProcedureSteps.forEach((step, index) => {
+        const editorContainer = document.getElementById(`editor-${index}`);
+        if (editorContainer) {
+            const quill = new Quill(`#editor-${index}`, {
+                theme: 'snow',
+                placeholder: 'Décrivez cette étape...',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'color': [] }, { 'background': [] }],
+                        ['link', 'image'],
+                        ['clean']
+                    ]
+                }
+            });
+
+            // Définir le contenu initial (support HTML)
+            if (step.content) {
+                quill.root.innerHTML = step.content;
+            }
+
+            // Sauvegarder les changements
+            quill.on('text-change', () => {
+                currentProcedureSteps[index].content = quill.root.innerHTML;
+            });
+
+            quillEditors.set(index, quill);
+        }
+    });
 }
 
 /**
