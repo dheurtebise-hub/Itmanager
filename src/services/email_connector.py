@@ -187,6 +187,11 @@ class OutlookConnector:
         """
         all_emails = []
 
+        # Log configuration des dossiers
+        self.logger.info(f"Configuration des dossiers Outlook: {self.folders_config}")
+        enabled_folders = [f['name'] for f in self.folders_config if f.get('enabled', True)]
+        self.logger.info(f"Dossiers activés pour synchronisation: {enabled_folders}")
+
         for folder_config in self.folders_config:
             if not folder_config.get('enabled', True):
                 continue

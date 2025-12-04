@@ -34,19 +34,25 @@ class SyncService:
             return {'status': 'already_syncing'}
 
         self._is_syncing = True
-        self.logger.info(f"Début synchronisation (initial_import={initial_import}, limit={import_limit})")
+        self.logger.info("=" * 80)
+        self.logger.info(f"DÉBUT SYNCHRONISATION")
+        self.logger.info(f"  - initial_import: {initial_import}")
+        self.logger.info(f"  - import_limit: {import_limit}")
+        self.logger.info(f"  - Timestamp: {datetime.now().isoformat()}")
 
         try:
             # Récupérer les emails
             # En mode initial, on récupère tous les emails (pas seulement non lus)
             only_unread = not initial_import
+            self.logger.info(f"Paramètres récupération emails: only_unread={only_unread}, limit={import_limit}")
+
             emails = self.connector.get_new_emails(
                 mark_as_read=False,
                 limit=import_limit,
                 only_unread=only_unread
             )
 
-            self.logger.info(f"{len(emails)} emails récupérés depuis Outlook")
+            self.logger.info(f"RÉSULTAT: {len(emails)} emails récupérés depuis Outlook")
 
             if not emails:
                 self.logger.info("Aucun nouvel email à synchroniser")
@@ -98,7 +104,13 @@ class SyncService:
             if new_tickets:
                 notification_service.notify_new_tickets(len(new_tickets))
 
-            self.logger.info(f"Synchronisation terminée: {len(new_tickets)} nouveaux tickets, {skipped} ignorés")
+            self.logger.info("=" * 80)
+            self.logger.info(f"FIN SYNCHRONISATION")
+            self.logger.info(f"  - Emails trouvés: {len(emails)}")
+            self.logger.info(f"  - Nouveaux tickets créés: {len(new_tickets)}")
+            self.logger.info(f"  - Tickets ignorés (doublons): {skipped}")
+            self.logger.info(f"  - Timestamp: {datetime.now().isoformat()}")
+            self.logger.info("=" * 80)
 
             return {
                 'status': 'success',
