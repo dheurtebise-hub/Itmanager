@@ -454,7 +454,7 @@
    ============================================ */
 
 .column-procedure {
-    background: var(--kanban-new);
+    background: var(--kanban-procedure);
     min-width: 350px;
 }
 

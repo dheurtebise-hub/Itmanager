@@ -1,32 +1,40 @@
 /* SYSTÈME DE THÈMES */
 
 :root, [data-theme="light"] {
-    --bg-primary: #F5F1E8;
-    --bg-secondary: #FAF8F3;
-    --bg-tertiary: #EBE6DA;
-    --bg-card: #FAF8F3;
-    --bg-hover: #E8E3D6;
+    /* Palette de gris clair */
+    --bg-primary: #F8F9FA;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F0F2F5;
+    --bg-card: #FFFFFF;
+    --bg-hover: #E9ECEF;
 
-    --text-primary: #3E3428;
-    --text-secondary: #6B5D4F;
-    --text-tertiary: #8F7F6D;
+    /* Textes en gris foncé */
+    --text-primary: #2C3E50;
+    --text-secondary: #5A6C7D;
+    --text-tertiary: #8B98A5;
 
-    --border-color: #D4C7B3;
+    /* Bordures gris clair */
+    --border-color: #DEE2E6;
 
-    --accent-primary: #B8860B;
-    --accent-primary-dark: #9B7209;
+    /* Accent bleu-gris doux */
+    --accent-primary: #7C90A0;
+    --accent-primary-dark: #5F7283;
 
-    --status-success: #7A9B76;
-    --status-warning: #D4A76A;
-    --status-error: #C17A74;
+    /* Statuts en tons pastel */
+    --status-success: #95C9A5;
+    --status-warning: #F9C98D;
+    --status-error: #E5A3A3;
 
-    --shadow-sm: 0 1px 3px rgba(62,52,40,0.15);
-    --shadow-md: 0 3px 6px rgba(62,52,40,0.20);
+    /* Ombres douces */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 3px 6px rgba(0,0,0,0.12);
 
-    --kanban-new: #FDF8F0;
-    --kanban-progress: #F5E8D3;
-    --kanban-resolved: #E8EBE0;
-    --kanban-closed: #F0ECE5;
+    /* Colonnes Kanban - Pastels très pâles */
+    --kanban-new: #E3F2FD;           /* Bleu pastel très pâle */
+    --kanban-progress: #FFF9E6;      /* Jaune pastel très pâle */
+    --kanban-resolved: #E8F5E9;      /* Vert pastel très pâle */
+    --kanban-closed: #F5F5F5;        /* Gris très pâle */
+    --kanban-procedure: #F3E5F5;     /* Violet pastel très pâle */
 }
 
 [data-theme="dark"] {
@@ -65,7 +73,7 @@ body {
 }
 
 .app-header {
-    background: linear-gradient(135deg, #E8DCC8, #D4C7B3);
+    background: linear-gradient(135deg, #E9ECEF, #DEE2E6);
     color: var(--text-primary);
 }
 
