@@ -662,15 +662,15 @@ async function markAsNotUserRequestFromCard(ticketId) {
 // ============================================
 
 let procedureSearchTimeout = null;
-let allProcedures = [];
+let proceduresSearchCache = [];
 
 // Charger toutes les procédures au démarrage
 async function loadAllProcedures() {
     try {
-        allProcedures = await api.getProcedures();
+        proceduresSearchCache = await api.getProcedures();
     } catch (error) {
         console.error('Error loading procedures for search:', error);
-        allProcedures = [];
+        proceduresSearchCache = [];
     }
 }
 
@@ -704,7 +704,7 @@ function searchProcedures(query) {
 function performProcedureSearch(query) {
     const resultsContainer = document.getElementById('procedure-search-results');
 
-    if (allProcedures.length === 0) {
+    if (proceduresSearchCache.length === 0) {
         // Si les procédures ne sont pas encore chargées, les charger
         loadAllProcedures().then(() => {
             performProcedureSearch(query);
@@ -715,7 +715,7 @@ function performProcedureSearch(query) {
     const lowerQuery = query.toLowerCase();
 
     // Rechercher dans le titre, la description et les mots-clés
-    const results = allProcedures.filter(proc => {
+    const results = proceduresSearchCache.filter(proc => {
         const titleMatch = proc.title?.toLowerCase().includes(lowerQuery);
         const descMatch = proc.description?.toLowerCase().includes(lowerQuery);
         const keywordsMatch = proc.keywords?.some(k => k.toLowerCase().includes(lowerQuery));
