@@ -7,7 +7,7 @@ let quillEditors = new Map(); // Map<stepIndex, Quill>
 /**
  * Ouvre la modal pour créer une nouvelle procédure
  */
-function openProcedureModal(ticketId = null, procedureId = null) {
+async function openProcedureModal(ticketId = null, procedureId = null) {
     const modal = document.getElementById('procedureModal');
     const modalTitle = document.getElementById('procedureModalTitle');
 
@@ -18,6 +18,10 @@ function openProcedureModal(ticketId = null, procedureId = null) {
 
     currentProcedureSteps = [];
     procedureMediaFiles.clear();
+
+    // Charger les catégories dynamiquement
+    const categorySelect = document.getElementById('procedureCategory');
+    await populateCategorySelect(categorySelect);
 
     if (procedureId) {
         // Mode édition

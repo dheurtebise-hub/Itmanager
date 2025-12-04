@@ -81,6 +81,23 @@
                 </select>
             </div>
 
+            <!-- Gestion des catégories -->
+            <div class="form-group">
+                <h3>🏷️ Gestion des catégories</h3>
+                <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
+                    Gérez les catégories utilisées pour classer les tickets et les procédures.
+                </p>
+
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="text" id="newCategoryName" placeholder="Nom de la catégorie" style="flex: 1;">
+                    <input type="text" id="newCategoryIcon" placeholder="🏷️" style="width: 60px;" maxlength="2">
+                    <input type="color" id="newCategoryColor" value="#0079BF" style="width: 60px;">
+                    <button class="btn btn-primary" onclick="addCategory()">➕ Ajouter</button>
+                </div>
+
+                <div id="categoriesList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+            </div>
+
             <!-- Backups -->
             <div class="form-group">
                 <h3>💾 Sauvegardes</h3>
@@ -601,5 +618,137 @@ async function importConfig(file) {
     reader.readAsText(file);
     document.getElementById('importConfigFile').value = '';
 }
+
+// ============================================
+// GESTION DES CATÉGORIES
+// ============================================
+
+let allCategories = [];
+
+// Charger les catégories
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/categories');
+        const categories = await response.json();
+        allCategories = categories;
+        renderCategories();
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        alert('❌ Erreur lors du chargement des catégories');
+    }
+}
+
+// Afficher les catégories
+function renderCategories() {
+    const container = document.getElementById('categoriesList');
+    if (!container) return;
+
+    container.innerHTML = allCategories.map(cat => `
+        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 6px;">
+            <span style="font-size: 1.5rem;">${cat.icon}</span>
+            <div style="flex: 1;">
+                <div style="font-weight: 500;">${cat.name}</div>
+            </div>
+            <div style="width: 30px; height: 30px; border-radius: 4px; background: ${cat.color};"></div>
+            <button class="btn-icon" onclick="editCategory(${cat.id})" title="Modifier">✏️</button>
+            <button class="btn-icon" onclick="deleteCategory(${cat.id})" title="Supprimer">🗑️</button>
+        </div>
+    `).join('');
+}
+
+// Ajouter une catégorie
+async function addCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    const icon = document.getElementById('newCategoryIcon').value.trim() || '🏷️';
+    const color = document.getElementById('newCategoryColor').value;
+
+    if (!name) {
+        alert('⚠️ Veuillez entrer un nom de catégorie');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, icon, color })
+        });
+
+        if (response.ok) {
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryIcon').value = '';
+            document.getElementById('newCategoryColor').value = '#0079BF';
+            await loadCategories();
+            alert('✅ Catégorie ajoutée avec succès !');
+        } else {
+            const error = await response.json();
+            alert('❌ Erreur : ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error adding category:', error);
+        alert('❌ Erreur lors de l\'ajout de la catégorie');
+    }
+}
+
+// Modifier une catégorie
+async function editCategory(id) {
+    const category = allCategories.find(c => c.id === id);
+    if (!category) return;
+
+    const newName = prompt('Nouveau nom de la catégorie:', category.name);
+    if (!newName || newName === category.name) return;
+
+    try {
+        const response = await fetch(`/api/categories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName })
+        });
+
+        if (response.ok) {
+            await loadCategories();
+            alert('✅ Catégorie modifiée avec succès !');
+        } else {
+            const error = await response.json();
+            alert('❌ Erreur : ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error updating category:', error);
+        alert('❌ Erreur lors de la modification de la catégorie');
+    }
+}
+
+// Supprimer une catégorie
+async function deleteCategory(id) {
+    const category = allCategories.find(c => c.id === id);
+    if (!category) return;
+
+    if (!confirm(`⚠️ Supprimer la catégorie "${category.name}" ?\n\nCette action ne peut pas être annulée.`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/categories/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            await loadCategories();
+            alert('✅ Catégorie supprimée avec succès !');
+        } else {
+            const error = await response.json();
+            alert('❌ Erreur : ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        alert('❌ Erreur lors de la suppression de la catégorie');
+    }
+}
+
+// Charger les catégories au démarrage
+document.addEventListener('DOMContentLoaded', function() {
+    loadCategories();
+});
+
 </script>
 {% endblock %}
