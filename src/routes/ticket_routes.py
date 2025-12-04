@@ -303,15 +303,30 @@ def get_stats():
 @ticket_bp.route('/api/sync', methods=['POST'])
 def sync_now():
     """Déclenche une synchronisation manuelle."""
-    data = request.json or {}
-    initial_import = data.get('initial_import', False)
-    import_limit = data.get('import_limit', 50)
+    try:
+        data = request.json or {}
+        initial_import = data.get('initial_import', False)
+        import_limit = data.get('import_limit', 50)
 
-    result = sync_service.sync_now(
-        initial_import=initial_import,
-        import_limit=import_limit
-    )
-    return jsonify(result)
+        result = sync_service.sync_now(
+            initial_import=initial_import,
+            import_limit=import_limit
+        )
+
+        # Retourner un statut HTTP approprié selon le résultat
+        if result.get('status') == 'error':
+            return jsonify(result), 500
+        elif result.get('status') == 'already_syncing':
+            return jsonify(result), 409  # Conflict
+        else:
+            return jsonify(result), 200
+
+    except Exception as e:
+        logger.error(f"Error in sync route: {e}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': f'Erreur serveur: {str(e)}'
+        }), 500
 
 @ticket_bp.route('/api/sync/status', methods=['GET'])
 def sync_status():

@@ -209,13 +209,16 @@ async function syncNow(initialImport = false) {
                 showNotification(`⚠️ ${result.emails_found} emails trouvés mais déjà importés`, 'warning');
             }
         } else if (result.status === 'error') {
-            showNotification('❌ Erreur: ' + result.message, 'error');
+            console.error('Erreur de synchronisation:', result.message);
+            const errorMsg = result.message || 'Erreur inconnue';
+            showNotification(`❌ Erreur de synchronisation:\n${errorMsg}`, 'error');
         } else if (result.status === 'already_syncing') {
             showNotification('⏳ Synchronisation déjà en cours...', 'warning');
         }
     } catch (error) {
         console.error('Erreur sync:', error);
-        showNotification('❌ Erreur lors de la synchronisation', 'error');
+        const errorMsg = error.message || error.toString();
+        showNotification(`❌ Erreur lors de la synchronisation:\n${errorMsg}`, 'error');
     } finally {
         if (button) button.disabled = false;
         if (icon) icon.textContent = '🔄';
