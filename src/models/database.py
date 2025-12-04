@@ -9,6 +9,22 @@ from typing import Optional, List, Dict, Any
 import os
 from contextlib import contextmanager
 
+# Whitelist des tables autorisées pour prévenir l'injection SQL
+ALLOWED_TABLES = {
+    'tickets',
+    'procedures',
+    'categories',
+    'knowledge_base',
+    'api_costs',
+    'sla_config',
+    'sla_alerts',
+    'email_templates',
+    'ai_feedback',
+    'daily_stats',
+    'procedure_feedback',
+    'ticket_procedures'
+}
+
 class Database:
     def __init__(self, db_path: str = None):
         self.logger = logging.getLogger(__name__)
@@ -113,8 +129,17 @@ class Database:
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
 
+    def _validate_table_name(self, table: str) -> None:
+        """Valide que le nom de table est dans la whitelist (sécurité anti-injection SQL)."""
+        if table not in ALLOWED_TABLES:
+            raise ValueError(
+                f"Table non autorisée: '{table}'. "
+                f"Tables autorisées: {', '.join(sorted(ALLOWED_TABLES))}"
+            )
+
     def insert(self, table: str, data: Dict[str, Any]) -> int:
         """Insert une ligne et retourne l'ID."""
+        self._validate_table_name(table)
         columns = ', '.join(data.keys())
         placeholders = ', '.join(['?' for _ in data])
         query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
@@ -124,6 +149,7 @@ class Database:
 
     def update(self, table: str, data: Dict[str, Any], where: str, where_params: tuple = None) -> int:
         """Met à jour des lignes."""
+        self._validate_table_name(table)
         set_clause = ', '.join([f"{k} = ?" for k in data.keys()])
         query = f"UPDATE {table} SET {set_clause} WHERE {where}"
 
@@ -136,6 +162,7 @@ class Database:
 
     def delete(self, table: str, where: str, params: tuple = None) -> int:
         """Supprime des lignes."""
+        self._validate_table_name(table)
         query = f"DELETE FROM {table} WHERE {where}"
         cursor = self.execute(query, params)
         return cursor.rowcount

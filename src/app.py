@@ -2,6 +2,8 @@
 Application Flask principale
 """
 
+import os
+import secrets
 from flask import Flask, render_template, redirect, url_for
 from flask_wtf.csrf import CSRFProtect
 import logging
@@ -23,8 +25,17 @@ def create_app():
                 template_folder='templates',
                 static_folder='static')
 
-    # Configuration
-    app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
+    # Configuration - Clé secrète depuis variable d'environnement
+    secret_key = os.environ.get('FLASK_SECRET_KEY')
+    if not secret_key:
+        # Générer une clé aléatoire pour développement uniquement
+        secret_key = secrets.token_hex(32)
+        app.logger.warning(
+            "⚠️  FLASK_SECRET_KEY non défini! Utilisation d'une clé temporaire. "
+            "Définissez FLASK_SECRET_KEY dans les variables d'environnement pour la production."
+        )
+
+    app.config['SECRET_KEY'] = secret_key
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max
 
     # CSRF Protection
