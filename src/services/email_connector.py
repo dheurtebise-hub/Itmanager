@@ -33,13 +33,13 @@ class OutlookConnector:
                         folder = inbox.Folders[folder_name]
                         count = folder.Items.Count
                         return True, f"✓ Connexion réussie. {count} emails dans '{folder_name}'"
-                    except:
-                        return False, f"✗ Le dossier '{folder_name}' n'existe pas"
+                    except Exception as e:
+                        return False, f"✗ Le dossier '{folder_name}' n'existe pas: {str(e)}"
                     finally:
                         if folder is not None:
                             try:
                                 del folder
-                            except:
+                            except Exception:
                                 pass
                             folder = None
 
@@ -51,26 +51,26 @@ class OutlookConnector:
             if folder is not None:
                 try:
                     del folder
-                except:
+                except Exception:
                     pass
             if inbox is not None:
                 try:
                     del inbox
-                except:
+                except Exception:
                     pass
             if namespace is not None:
                 try:
                     del namespace
-                except:
+                except Exception:
                     pass
             if outlook is not None:
                 try:
                     del outlook
-                except:
+                except Exception:
                     pass
             try:
                 pythoncom.CoUninitialize()
-            except:
+            except Exception:
                 pass
 
     def list_available_folders(self) -> List[Dict[str, Any]]:
@@ -98,16 +98,16 @@ class OutlookConnector:
                         if namespace:
                             try:
                                 del namespace
-                            except:
+                            except Exception:
                                 pass
                         if outlook:
                             try:
                                 del outlook
-                            except:
+                            except Exception:
                                 pass
                         try:
                             pythoncom.CoUninitialize()
-                        except:
+                        except Exception:
                             pass
                         import time
                         time.sleep(retry_delay)
@@ -140,7 +140,7 @@ class OutlookConnector:
                         if folder is not None:
                             try:
                                 del folder
-                            except:
+                            except Exception:
                                 pass
 
                 self.logger.info(f"{len(folders)} dossiers Outlook trouvés")
@@ -158,21 +158,21 @@ class OutlookConnector:
                 if inbox is not None:
                     try:
                         del inbox
-                    except:
+                    except Exception:
                         pass
                 if namespace is not None:
                     try:
                         del namespace
-                    except:
+                    except Exception:
                         pass
                 if outlook is not None:
                     try:
                         del outlook
-                    except:
+                    except Exception:
                         pass
                 try:
                     pythoncom.CoUninitialize()
-                except:
+                except Exception:
                     pass
 
         return []
@@ -239,16 +239,16 @@ class OutlookConnector:
                         if namespace:
                             try:
                                 del namespace
-                            except:
+                            except Exception:
                                 pass
                         if outlook:
                             try:
                                 del outlook
-                            except:
+                            except Exception:
                                 pass
                         try:
                             pythoncom.CoUninitialize()
-                        except:
+                        except Exception:
                             pass
                         import time
                         time.sleep(retry_delay)
@@ -331,7 +331,7 @@ class OutlookConnector:
                         if item is not None:
                             try:
                                 del item
-                            except:
+                            except Exception:
                                 pass
 
                 self.logger.info(f"Dossier '{folder_name}': {count} emails extraits sur {processed} traités")
@@ -349,31 +349,31 @@ class OutlookConnector:
                 if items is not None:
                     try:
                         del items
-                    except:
+                    except Exception:
                         pass
                 if folder is not None:
                     try:
                         del folder
-                    except:
+                    except Exception:
                         pass
                 if inbox is not None:
                     try:
                         del inbox
-                    except:
+                    except Exception:
                         pass
                 if namespace is not None:
                     try:
                         del namespace
-                    except:
+                    except Exception:
                         pass
                 if outlook is not None:
                     try:
                         del outlook
-                    except:
+                    except Exception:
                         pass
                 try:
                     pythoncom.CoUninitialize()
-                except:
+                except Exception:
                     pass
 
         return []
@@ -488,17 +488,18 @@ class OutlookConnector:
                         email = exchange_user.PrimarySmtpAddress
                         return email
             return item.SenderEmailAddress or ''
-        except:
+        except Exception:
+            # Fallback si échec d'accès aux propriétés Exchange
             return item.SenderEmailAddress or ''
         finally:
             # Libérer les objets COM créés
             if exchange_user is not None:
                 try:
                     del exchange_user
-                except:
+                except Exception:
                     pass
             if sender is not None:
                 try:
                     del sender
-                except:
+                except Exception:
                     pass

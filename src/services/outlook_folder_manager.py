@@ -63,21 +63,21 @@ class OutlookFolderManager:
             if inbox:
                 try:
                     del inbox
-                except:
+                except Exception:
                     pass
             if namespace:
                 try:
                     del namespace
-                except:
+                except Exception:
                     pass
             if outlook:
                 try:
                     del outlook
-                except:
+                except Exception:
                     pass
             try:
                 pythoncom.CoUninitialize()
-            except:
+            except Exception:
                 pass
 
     def move_email_to_folder(self, message_id: str, target_folder_key: str) -> Tuple[bool, str]:
@@ -130,31 +130,31 @@ class OutlookFolderManager:
             if item:
                 try:
                     del item
-                except:
+                except Exception:
                     pass
             if target_folder:
                 try:
                     del target_folder
-                except:
+                except Exception:
                     pass
             if inbox:
                 try:
                     del inbox
-                except:
+                except Exception:
                     pass
             if namespace:
                 try:
                     del namespace
-                except:
+                except Exception:
                     pass
             if outlook:
                 try:
                     del outlook
-                except:
+                except Exception:
                     pass
             try:
                 pythoncom.CoUninitialize()
-            except:
+            except Exception:
                 pass
 
     def move_ticket_email(self, message_id: str, new_status: str) -> Tuple[bool, str]:

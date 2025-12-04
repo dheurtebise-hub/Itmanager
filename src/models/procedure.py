@@ -34,12 +34,12 @@ class Procedure:
             if procedure.get('steps'):
                 try:
                     procedure['steps'] = json.loads(procedure['steps'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     procedure['steps'] = []
             if procedure.get('keywords'):
                 try:
                     procedure['keywords'] = json.loads(procedure['keywords'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     procedure['keywords'] = []
         return procedure
 
@@ -94,12 +94,12 @@ class Procedure:
             if proc.get('steps'):
                 try:
                     proc['steps'] = json.loads(proc['steps'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     proc['steps'] = []
             if proc.get('keywords'):
                 try:
                     proc['keywords'] = json.loads(proc['keywords'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     proc['keywords'] = []
             result.append(proc)
 
@@ -146,12 +146,12 @@ class Procedure:
             if proc.get('steps'):
                 try:
                     proc['steps'] = json.loads(proc['steps'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     proc['steps'] = []
             if proc.get('keywords'):
                 try:
                     proc['keywords'] = json.loads(proc['keywords'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     proc['keywords'] = []
             result.append(proc)
 
@@ -249,8 +249,8 @@ class Procedure:
                 'confidence': confidence
             })
             return True
-        except:
-            # Déjà lié
+        except Exception:
+            # Déjà lié (UNIQUE constraint violation)
             return False
 
     @staticmethod
@@ -274,12 +274,12 @@ class Procedure:
             if proc.get('steps'):
                 try:
                     proc['steps'] = json.loads(proc['steps'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     proc['steps'] = []
             if proc.get('keywords'):
                 try:
                     proc['keywords'] = json.loads(proc['keywords'])
-                except:
+                except (json.JSONDecodeError, TypeError):
                     proc['keywords'] = []
             result.append(proc)
 

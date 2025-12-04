@@ -13,7 +13,7 @@ def format_datetime(dt: Optional[datetime], format_str: str = '%d/%m/%Y %H:%M') 
     if isinstance(dt, str):
         try:
             dt = datetime.fromisoformat(dt)
-        except:
+        except (ValueError, TypeError):
             return dt
     return dt.strftime(format_str)
 
@@ -24,7 +24,7 @@ def parse_datetime(dt_str: str) -> Optional[datetime]:
         return None
     try:
         return datetime.fromisoformat(dt_str)
-    except:
+    except (ValueError, TypeError):
         return None
 
 

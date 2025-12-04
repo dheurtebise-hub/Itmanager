@@ -23,7 +23,8 @@ class SLAService:
                 }
                 for row in rows
             }
-        except:
+        except Exception as e:
+            self.logger.warning(f"Could not load SLA config from database: {e}. Using defaults.")
             self._sla_config = {
                 'urgent': {'response_time': 30, 'resolution_time': 240},
                 'high': {'response_time': 60, 'resolution_time': 480},
