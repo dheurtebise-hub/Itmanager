@@ -561,7 +561,7 @@ function createProcedureCard(procedure, ticketId) {
         ? `
             <div class="procedure-steps">
                 <div class="procedure-steps-title">Étapes :</div>
-                ${procedure.steps.map(step => `<div class="procedure-step">${escapeHtml(step)}</div>`).join('')}
+                ${procedure.steps.map(step => `<div class="procedure-step">${step}</div>`).join('')}
             </div>
         `
         : '';
