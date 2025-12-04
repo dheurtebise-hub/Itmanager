@@ -226,6 +226,12 @@ def import_single_procedure():
         # Lire le contenu du fichier
         file_content = file.read()
 
+        # Valider le fichier uploadé (sécurité)
+        from utils.security import validate_uploaded_file
+        is_valid, error_msg = validate_uploaded_file(file.filename, file_content)
+        if not is_valid:
+            return jsonify({'error': error_msg}), 400
+
         # Extraire le texte selon le format du fichier
         from utils.file_parser import extract_text_from_file
         content = extract_text_from_file(file_content, file.filename)

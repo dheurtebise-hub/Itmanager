@@ -80,9 +80,14 @@ def import_database():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
 
-        # Vérifier l'extension
-        if not file.filename.endswith(('.db', '.sqlite', '.sqlite3')):
-            return jsonify({'error': 'Invalid file format. Expected .db, .sqlite or .sqlite3'}), 400
+        # Lire le contenu pour validation
+        file_content = file.read()
+
+        # Valider le fichier de base de données (sécurité)
+        from utils.security import validate_database_file
+        is_valid, error_msg = validate_database_file(file.filename, file_content)
+        if not is_valid:
+            return jsonify({'error': error_msg}), 400
 
         # Créer une sauvegarde avant l'import
         db_path = db.db_path
@@ -92,7 +97,8 @@ def import_database():
 
         # Sauvegarder le fichier importé temporairement
         temp_path = str(Path(db_path).parent / 'temp_import.db')
-        file.save(temp_path)
+        with open(temp_path, 'wb') as f:
+            f.write(file_content)
 
         # Remplacer la base de données actuelle
         shutil.move(temp_path, db_path)
