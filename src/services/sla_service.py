@@ -53,6 +53,10 @@ class SLAService:
         }
 
     def check_sla_status(self, ticket: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Vérifie le statut SLA d'un seul ticket.
+        Pour traiter plusieurs tickets, utilisez check_sla_status_batch() pour de meilleures performances.
+        """
         now = datetime.now()
         deadlines = self.get_sla_deadlines(ticket)
         status = ticket.get('status', 'new')
@@ -79,6 +83,47 @@ class SLAService:
                     result['status'] = 'warning'
 
         return result
+
+    def check_sla_status_batch(self, tickets: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Vérifie le statut SLA de plusieurs tickets en une seule opération (optimisé).
+
+        Args:
+            tickets: Liste de tickets
+
+        Returns:
+            Liste de tickets avec le champ 'sla_status' ajouté
+        """
+        now = datetime.now()
+
+        for ticket in tickets:
+            deadlines = self.get_sla_deadlines(ticket)
+            status = ticket.get('status', 'new')
+
+            result = {'status': 'ok', 'response': {'status': 'ok'}, 'resolution': {'status': 'ok'}}
+
+            if status == 'new':
+                remaining = (deadlines['response_deadline'] - now).total_seconds()
+                if remaining < 0:
+                    result['response'] = {'status': 'breach', 'overdue_minutes': abs(remaining) // 60}
+                    result['status'] = 'breach'
+                elif remaining < 600:
+                    result['response'] = {'status': 'warning', 'remaining_minutes': remaining // 60}
+                    result['status'] = 'warning'
+
+            if status not in ['resolved', 'closed']:
+                remaining = (deadlines['resolution_deadline'] - now).total_seconds()
+                if remaining < 0:
+                    result['resolution'] = {'status': 'breach', 'overdue_minutes': abs(remaining) // 60}
+                    result['status'] = 'breach'
+                elif remaining < 1800:
+                    result['resolution'] = {'status': 'warning', 'remaining_minutes': remaining // 60}
+                    if result['status'] != 'breach':
+                        result['status'] = 'warning'
+
+            ticket['sla_status'] = result
+
+        return tickets
 
     def get_sla_report(self, days: int = 30) -> Dict[str, Any]:
         cutoff = (datetime.now() - timedelta(days=days)).isoformat()

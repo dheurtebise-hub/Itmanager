@@ -166,9 +166,8 @@ def get_tickets():
 
     tickets = db.fetchall(query, tuple(params))
 
-    # Ajouter le statut SLA à chaque ticket
-    for ticket in tickets:
-        ticket['sla_status'] = sla_service.check_sla_status(ticket)
+    # Ajouter le statut SLA à tous les tickets (batch processing pour performance)
+    tickets = sla_service.check_sla_status_batch(tickets)
 
     return jsonify({
         'tickets': tickets,
