@@ -815,7 +815,7 @@ function openProcedureDetails(procedureId) {
     resultsContainer.classList.remove('show');
 
     // Vider le champ de recherche
-    const searchInput = document.getElementById('procedureSearchInput');
+    const searchInput = document.getElementById('procedureQuickSearchInput');
     if (searchInput) searchInput.value = '';
 
     // Ouvrir l'éditeur de procédure
@@ -824,7 +824,7 @@ function openProcedureDetails(procedureId) {
 
 // Afficher les résultats au focus
 function showProcedureSearchResults() {
-    const searchInput = document.getElementById('procedureSearchInput');
+    const searchInput = document.getElementById('procedureQuickSearchInput');
     const query = searchInput?.value?.trim();
 
     if (query && query.length > 0) {

@@ -1017,28 +1017,30 @@ select.form-control {
 }
 
 .procedure-search-box {
-    display: flex;
-    align-items: center;
+    position: relative;
     padding: 0.5rem 0.75rem;
-    gap: 0.5rem;
 }
 
 .procedure-search-box .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 1rem;
     color: var(--text-tertiary);
-    flex-shrink: 0;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .procedure-search-box input {
-    flex: 1;
-    padding: 0.4rem 0.6rem;
+    width: 100%;
+    padding: 0.4rem 0.6rem 0.4rem 2.2rem;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 0.85rem;
     background: var(--bg-secondary);
     color: var(--text-primary);
     transition: all 0.2s;
-    min-width: 0;
 }
 
 .procedure-search-box input:focus {
