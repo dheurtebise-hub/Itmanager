@@ -179,15 +179,23 @@ CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_category ON tickets(category);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);
 CREATE INDEX IF NOT EXISTS idx_tickets_received_date ON tickets(received_date DESC);
+CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tickets_updated_at ON tickets(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tickets_resolved_at ON tickets(resolved_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tickets_sender_email ON tickets(sender_email);
 CREATE INDEX IF NOT EXISTS idx_tickets_status_priority ON tickets(status, priority);
 CREATE INDEX IF NOT EXISTS idx_tickets_dashboard ON tickets(status, category, priority, received_date DESC);
 
 CREATE INDEX IF NOT EXISTS idx_knowledge_category ON knowledge_base(category);
 CREATE INDEX IF NOT EXISTS idx_knowledge_usage ON knowledge_base(usage_count DESC);
+CREATE INDEX IF NOT EXISTS idx_knowledge_created_at ON knowledge_base(created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_api_costs_date ON api_costs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sla_alerts_ticket ON sla_alerts(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_sla_alerts_ticket_type ON sla_alerts(ticket_id, alert_type);
+CREATE INDEX IF NOT EXISTS idx_ai_feedback_ticket ON ai_feedback(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_date ON daily_stats(stat_date DESC);
+CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active, order_index);
 
 -- Recherche full-text sur la base de connaissances
 CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_search USING fts5(
@@ -250,6 +258,8 @@ CREATE TABLE IF NOT EXISTS ticket_procedures (
 CREATE INDEX IF NOT EXISTS idx_procedures_category ON procedures(category);
 CREATE INDEX IF NOT EXISTS idx_procedures_active ON procedures(is_active);
 CREATE INDEX IF NOT EXISTS idx_procedures_usage ON procedures(usage_count DESC);
+CREATE INDEX IF NOT EXISTS idx_procedures_created_at ON procedures(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_procedures_updated_at ON procedures(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_procedure_feedback_procedure ON procedure_feedback(procedure_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_procedures_ticket ON ticket_procedures(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_procedures_procedure ON ticket_procedures(procedure_id);
