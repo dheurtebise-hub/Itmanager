@@ -4,6 +4,12 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/setup.css') }}">
+<style>
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
 {% endblock %}
 
 {% block body %}
@@ -52,11 +58,26 @@
             <!-- Dossiers Outlook -->
             <div class="form-group">
                 <h3>📁 Dossiers Outlook à surveiller</h3>
+                <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
+                    ⚠️ <strong>Important :</strong> Seuls les dossiers cochés ci-dessous seront synchronisés.
+                    Si vous ne voyez pas d'emails lors de la synchronisation, vérifiez que le bon dossier est activé.
+                </p>
                 <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                     <button class="btn btn-primary" onclick="setupAppFolders()">🔧 Créer les dossiers de l'application</button>
-                    <button class="btn btn-secondary" onclick="loadOutlookFolders()">📋 Charger tous les dossiers</button>
+                    <button class="btn btn-secondary" onclick="loadOutlookFolders()">🔄 Recharger les dossiers</button>
                 </div>
-                <div id="outlookFoldersList" class="mt-2"></div>
+
+                <!-- Indicateur de dossiers actifs -->
+                <div id="activeFoldersIndicator" style="padding: 0.75rem; background: #e3f2fd; border-left: 4px solid #2196f3; margin-bottom: 1rem; border-radius: 4px; display: none;">
+                    <strong>📊 Dossiers actuellement surveillés :</strong>
+                    <div id="activeFoldersList" style="margin-top: 0.5rem; font-size: 0.875rem;"></div>
+                </div>
+
+                <div id="outlookFoldersLoading" style="padding: 1rem; text-align: center; color: #666;">
+                    <div style="display: inline-block; animation: spin 1s linear infinite;">⏳</div>
+                    Chargement des dossiers Outlook...
+                </div>
+                <div id="outlookFoldersList" class="mt-2" style="display: none;"></div>
             </div>
 
             <!-- Archivage automatique -->
@@ -253,46 +274,71 @@ async function loadBackups() {
 }
 
 async function loadOutlookFolders() {
+    const loadingEl = document.getElementById('outlookFoldersLoading');
+    const listEl = document.getElementById('outlookFoldersList');
+
     try {
+        loadingEl.style.display = 'block';
+        listEl.style.display = 'none';
+
         const response = await fetch('/api/outlook/folders');
         if (!response.ok) {
-            alert('Erreur lors du chargement des dossiers Outlook. Vérifiez qu\'Outlook est ouvert.');
+            loadingEl.innerHTML = '<p style="color: #f44336;">❌ Erreur lors du chargement des dossiers. Vérifiez qu\'Outlook est ouvert et configuré.</p>';
             return;
         }
 
         outlookFolders = await response.json();
+        loadingEl.style.display = 'none';
+        listEl.style.display = 'block';
         displayOutlookFolders();
+        updateActiveFoldersIndicator();
     } catch (error) {
-        alert('Impossible de charger les dossiers: ' + error.message);
+        loadingEl.innerHTML = `<p style="color: #f44336;">❌ Impossible de charger les dossiers: ${error.message}</p>`;
     }
 }
 
 function displayOutlookFolders() {
     const list = document.getElementById('outlookFoldersList');
     if (outlookFolders.length === 0) {
-        list.innerHTML = '<p style="color: #666;">Aucun dossier chargé. Cliquez sur "Charger les dossiers disponibles".</p>';
+        list.innerHTML = '<p style="color: #666;">Aucun dossier chargé. Cliquez sur "🔄 Recharger les dossiers".</p>';
         return;
     }
 
-    list.innerHTML = outlookFolders.map((folder, index) => `
-        <div class="folder-item" style="border: 1px solid #e0e0e0; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px;">
+    list.innerHTML = outlookFolders.map((folder, index) => {
+        const isEnabled = folder.enabled;
+        const bgColor = isEnabled ? '#e8f5e9' : '#fafafa';
+        const borderColor = isEnabled ? '#4caf50' : '#e0e0e0';
+        const borderWidth = isEnabled ? '2px' : '1px';
+
+        return `
+        <div class="folder-item" style="
+            border: ${borderWidth} solid ${borderColor};
+            background: ${bgColor};
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <div style="flex: 1;">
+                    <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
                         <input type="checkbox"
-                               ${folder.enabled ? 'checked' : ''}
-                               onchange="toggleFolder(${index})">
-                        <strong>📁 ${folder.name}</strong>
+                               ${isEnabled ? 'checked' : ''}
+                               onchange="toggleFolder(${index})"
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <div>
+                            <strong style="font-size: 1rem;">📁 ${folder.name}</strong>
+                            ${isEnabled ? '<span style="margin-left: 0.5rem; color: #4caf50; font-size: 0.875rem;">✓ Actif</span>' : ''}
+                            <div style="font-size: 0.875rem; color: #666; margin-top: 0.25rem;">
+                                ${folder.count} email(s) dans ce dossier
+                            </div>
+                        </div>
                     </label>
-                    <div style="font-size: 0.875rem; color: #666; margin-left: 1.5rem;">
-                        ${folder.count} emails
-                    </div>
                 </div>
-                ${folder.enabled ? `
+                ${isEnabled ? `
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label style="font-size: 0.875rem;">Boost priorité:</label>
+                        <label style="font-size: 0.875rem; color: #666;">Boost priorité:</label>
                         <select onchange="changePriorityBoost(${index}, this.value)"
-                                style="padding: 0.25rem;">
+                                style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background: white;">
                             <option value="0" ${folder.priority_boost === 0 ? 'selected' : ''}>Aucun</option>
                             <option value="1" ${folder.priority_boost === 1 ? 'selected' : ''}>+1 (Medium → High)</option>
                             <option value="2" ${folder.priority_boost === 2 ? 'selected' : ''}>+2 (Medium → Urgent)</option>
@@ -301,16 +347,41 @@ function displayOutlookFolders() {
                 ` : ''}
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function toggleFolder(index) {
     outlookFolders[index].enabled = !outlookFolders[index].enabled;
     displayOutlookFolders();
+    updateActiveFoldersIndicator();
 }
 
 function changePriorityBoost(index, value) {
     outlookFolders[index].priority_boost = parseInt(value);
+}
+
+function updateActiveFoldersIndicator() {
+    const indicator = document.getElementById('activeFoldersIndicator');
+    const list = document.getElementById('activeFoldersList');
+
+    const activeFolders = outlookFolders.filter(f => f.enabled);
+
+    if (activeFolders.length === 0) {
+        indicator.style.display = 'block';
+        indicator.style.background = '#ffebee';
+        indicator.style.borderLeftColor = '#f44336';
+        list.innerHTML = '<span style="color: #d32f2f;">⚠️ Aucun dossier n\'est actuellement surveillé. Les emails ne seront pas synchronisés !</span>';
+    } else {
+        indicator.style.display = 'block';
+        indicator.style.background = '#e8f5e9';
+        indicator.style.borderLeftColor = '#4caf50';
+        list.innerHTML = activeFolders.map(f =>
+            `<span style="display: inline-block; background: white; padding: 0.25rem 0.75rem; margin: 0.25rem; border-radius: 12px; border: 1px solid #4caf50;">
+                ✓ ${f.name}
+            </span>`
+        ).join('');
+    }
 }
 
 async function setupAppFolders() {
@@ -400,8 +471,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     loadBackups();
 
-    // Afficher message pour charger les dossiers Outlook
-    displayOutlookFolders();
+    // Charger automatiquement les dossiers Outlook
+    loadOutlookFolders();
 
     // Charger l'aperçu de l'archivage
     previewArchive();
