@@ -134,6 +134,21 @@
                     <div>Cliquez sur un ticket pour voir les procédures suggérées</div>
                 </div>
             </div>
+
+            <!-- Zone de recherche de procédures -->
+            <div class="procedure-search-container">
+                <div class="procedure-search-results" id="procedure-search-results"></div>
+                <div class="procedure-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input
+                        type="text"
+                        id="procedureSearchInput"
+                        placeholder="Rechercher une procédure..."
+                        oninput="searchProcedures(this.value)"
+                        onfocus="showProcedureSearchResults()"
+                    >
+                </div>
+            </div>
         </div>
     </div>
 </div>

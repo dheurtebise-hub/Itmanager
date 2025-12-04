@@ -657,3 +657,193 @@ async function markAsNotUserRequestFromCard(ticketId) {
     }
 }
 
+// ============================================
+// RECHERCHE DE PROCÉDURES
+// ============================================
+
+let procedureSearchTimeout = null;
+let allProcedures = [];
+
+// Charger toutes les procédures au démarrage
+async function loadAllProcedures() {
+    try {
+        allProcedures = await api.getProcedures();
+    } catch (error) {
+        console.error('Error loading procedures for search:', error);
+        allProcedures = [];
+    }
+}
+
+// Fonction de recherche avec debounce
+function searchProcedures(query) {
+    clearTimeout(procedureSearchTimeout);
+
+    const resultsContainer = document.getElementById('procedure-search-results');
+
+    if (!query || query.trim().length === 0) {
+        resultsContainer.classList.remove('show');
+        resultsContainer.innerHTML = '';
+        return;
+    }
+
+    // Afficher un spinner pendant le chargement
+    resultsContainer.classList.add('show');
+    resultsContainer.innerHTML = `
+        <div class="procedure-search-loading">
+            <div class="procedure-search-loading-spinner">⏳</div>
+            <div>Recherche en cours...</div>
+        </div>
+    `;
+
+    procedureSearchTimeout = setTimeout(() => {
+        performProcedureSearch(query.trim());
+    }, 300); // Attendre 300ms après la dernière frappe
+}
+
+// Effectuer la recherche
+function performProcedureSearch(query) {
+    const resultsContainer = document.getElementById('procedure-search-results');
+
+    if (allProcedures.length === 0) {
+        // Si les procédures ne sont pas encore chargées, les charger
+        loadAllProcedures().then(() => {
+            performProcedureSearch(query);
+        });
+        return;
+    }
+
+    const lowerQuery = query.toLowerCase();
+
+    // Rechercher dans le titre, la description et les mots-clés
+    const results = allProcedures.filter(proc => {
+        const titleMatch = proc.title?.toLowerCase().includes(lowerQuery);
+        const descMatch = proc.description?.toLowerCase().includes(lowerQuery);
+        const keywordsMatch = proc.keywords?.some(k => k.toLowerCase().includes(lowerQuery));
+        const categoryMatch = proc.category?.toLowerCase().includes(lowerQuery);
+
+        return titleMatch || descMatch || keywordsMatch || categoryMatch;
+    });
+
+    // Limiter à 10 résultats
+    const limitedResults = results.slice(0, 10);
+
+    if (limitedResults.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="procedure-search-empty">
+                <div class="procedure-search-empty-icon">🔍</div>
+                <div>Aucune procédure trouvée</div>
+            </div>
+        `;
+    } else {
+        resultsContainer.innerHTML = limitedResults.map(proc =>
+            renderProcedureSearchItem(proc, query)
+        ).join('');
+    }
+
+    resultsContainer.classList.add('show');
+}
+
+// Afficher un item de résultat
+function renderProcedureSearchItem(procedure, query) {
+    const categoryIcon = getCategoryIconSync(procedure.category);
+    const categoryLabel = formatCategoryLabel(procedure.category);
+
+    // Mettre en surbrillance les mots correspondants
+    const highlightedTitle = highlightText(procedure.title || 'Sans titre', query);
+    const description = procedure.description || '';
+    const truncatedDesc = description.length > 100
+        ? description.substring(0, 100) + '...'
+        : description;
+
+    return `
+        <div class="procedure-search-item" onclick="openProcedureDetails(${procedure.id})">
+            <div class="procedure-search-title">${highlightedTitle}</div>
+            <div>
+                <span class="procedure-search-category">${categoryIcon} ${categoryLabel}</span>
+            </div>
+            ${truncatedDesc ? `<div class="procedure-search-description">${escapeHtml(truncatedDesc)}</div>` : ''}
+        </div>
+    `;
+}
+
+// Mettre en surbrillance le texte
+function highlightText(text, query) {
+    if (!text || !query) return escapeHtml(text);
+
+    const escapedText = escapeHtml(text);
+    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+    return escapedText.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// Échapper les caractères spéciaux de regex
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Obtenir l'icône de catégorie (version synchrone avec cache)
+function getCategoryIconSync(categoryName) {
+    const icons = {
+        'installation_logiciel': '💿',
+        'depannage_materiel': '🔧',
+        'demande_licence': '🔑',
+        'support_applicatif': '💻',
+        'reseau': '🌐',
+        'securite': '🔒',
+        'autre': '📋'
+    };
+    return icons[categoryName] || '📋';
+}
+
+// Formater le label de catégorie
+function formatCategoryLabel(name) {
+    const labels = {
+        'installation_logiciel': 'Installation logiciel',
+        'depannage_materiel': 'Dépannage matériel',
+        'demande_licence': 'Demande de licence',
+        'support_applicatif': 'Support applicatif',
+        'reseau': 'Réseau',
+        'securite': 'Sécurité',
+        'autre': 'Autre'
+    };
+    return labels[name] || name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Ouvrir les détails d'une procédure
+function openProcedureDetails(procedureId) {
+    // Fermer les résultats de recherche
+    const resultsContainer = document.getElementById('procedure-search-results');
+    resultsContainer.classList.remove('show');
+
+    // Vider le champ de recherche
+    const searchInput = document.getElementById('procedureSearchInput');
+    if (searchInput) searchInput.value = '';
+
+    // Ouvrir l'éditeur de procédure
+    editProcedure(procedureId);
+}
+
+// Afficher les résultats au focus
+function showProcedureSearchResults() {
+    const searchInput = document.getElementById('procedureSearchInput');
+    const query = searchInput?.value?.trim();
+
+    if (query && query.length > 0) {
+        const resultsContainer = document.getElementById('procedure-search-results');
+        if (resultsContainer.children.length > 0) {
+            resultsContainer.classList.add('show');
+        }
+    }
+}
+
+// Cacher les résultats si on clique ailleurs
+document.addEventListener('click', (e) => {
+    const searchContainer = document.querySelector('.procedure-search-container');
+    if (searchContainer && !searchContainer.contains(e.target)) {
+        const resultsContainer = document.getElementById('procedure-search-results');
+        resultsContainer.classList.remove('show');
+    }
+});
+
+// Charger les procédures au démarrage
+loadAllProcedures();
+
