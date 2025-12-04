@@ -10,7 +10,7 @@ async function openTicketModal(ticketId) {
         const modal = document.getElementById('ticketModal');
         const detailsDiv = document.getElementById('ticketDetails');
 
-        detailsDiv.innerHTML = renderTicketDetails(ticket);
+        detailsDiv.innerHTML = await renderTicketDetails(ticket);
         modal.style.display = 'flex';
     } catch (error) {
         console.error('Error loading ticket:', error);
@@ -104,12 +104,15 @@ function renderEmailThread(ticket) {
     return html;
 }
 
-function renderTicketDetails(ticket) {
+async function renderTicketDetails(ticket) {
     const statusOptions = [
         { value: 'new', label: '📥 Nouveau' },
         { value: 'in_progress', label: '⚙️ En cours' },
         { value: 'resolved', label: '✅ Résolu' }
     ];
+
+    // Charger les catégories pour le select
+    const categories = await getCategories();
 
     return `
         <div class="ticket-modal-header">
@@ -144,15 +147,18 @@ function renderTicketDetails(ticket) {
                     </select>
                 </div>
 
-                ${ticket.category ? `
                 <div class="form-group">
                     <label><strong>Catégorie</strong></label>
-                    <div>${escapeHtml(ticket.category)}</div>
+                    <select id="ticketCategory" onchange="updateTicketField('category', this.value)">
+                        ${!ticket.category ? '<option value="">-- Sélectionner une catégorie --</option>' : ''}
+                        ${categories.map(cat =>
+                            `<option value="${cat.name}" ${ticket.category === cat.name ? 'selected' : ''}>${cat.icon} ${cat.label}</option>`
+                        ).join('')}
+                    </select>
                     ${ticket.ai_confidence ? `
                         <div class="form-help">Catégorisé par IA (${Math.round(ticket.ai_confidence * 100)}%)</div>
                     ` : ''}
                 </div>
-                ` : ''}
 
                 <div class="flex gap-2 mt-3">
                     <button class="btn btn-secondary" onclick="closeTicketModal()">Fermer</button>
@@ -185,9 +191,18 @@ async function updateTicketField(field, value) {
         await api.updateTicket(currentTicket.id, { [field]: value });
         await loadTickets(); // Recharger les tickets
         currentTicket[field] = value;
+
+        // Afficher un message de confirmation
+        const fieldLabels = {
+            'status': 'Statut',
+            'category': 'Catégorie',
+            'priority': 'Priorité'
+        };
+        const fieldLabel = fieldLabels[field] || field;
+        showNotification(`${fieldLabel} mis à jour avec succès`, 'success');
     } catch (error) {
         console.error('Error updating ticket:', error);
-        alert('Erreur lors de la mise à jour');
+        showNotification('Erreur lors de la mise à jour', 'error');
     }
 }
 
