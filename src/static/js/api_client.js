@@ -132,6 +132,22 @@ class APIClient {
 
     async getProcedures(filters = {}) {
         const params = new URLSearchParams(filters).toString();
+        const response = await this.request(`/api/procedures${params ? '?' + params : ''}`);
+
+        // L'API retourne maintenant { procedures: [...], pagination: {...} }
+        // Pour la rétrocompatibilité, on retourne juste le tableau de procédures
+        // Si l'appelant a besoin de la pagination, il peut utiliser getProceduresPaginated()
+        if (response && response.procedures) {
+            return response.procedures;
+        }
+
+        // Fallback pour l'ancien format (si jamais)
+        return response;
+    }
+
+    async getProceduresPaginated(filters = {}) {
+        // Cette méthode retourne l'objet complet avec pagination
+        const params = new URLSearchParams(filters).toString();
         return this.request(`/api/procedures${params ? '?' + params : ''}`);
     }
 
