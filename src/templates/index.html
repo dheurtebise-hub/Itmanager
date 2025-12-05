@@ -62,7 +62,6 @@
             </select>
         </div>
         <div class="toolbar-right">
-            <button class="btn btn-secondary" onclick="openProceduresListModal()">📋 Procédures</button>
             <button class="btn btn-secondary" onclick="exportTickets('csv')">📊 Export CSV</button>
         </div>
     </div>
@@ -143,12 +142,6 @@
                         oninput="searchProceduresModern(this.value)"
                     >
                 </div>
-            </div>
-
-            <!-- Compteur et sélection -->
-            <div class="procedure-meta">
-                <span class="procedure-count" id="procedure-count">0 procédures</span>
-                <button class="btn-select-procedures" onclick="toggleProcedureSelection()">Sélectionner</button>
             </div>
 
             <!-- Liste des procédures -->
