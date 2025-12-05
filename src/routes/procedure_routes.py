@@ -483,3 +483,25 @@ def get_procedures_statistics():
     except Exception as e:
         logger.error(f"Error getting procedures statistics: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@procedure_bp.route('/api/procedures/<int:procedure_id>/similar', methods=['GET'])
+@rate_limit()
+def get_similar_procedures(procedure_id):
+    """Récupère les procédures similaires à une procédure donnée."""
+    try:
+        limit = int(request.args.get('limit', 5))
+
+        # Validation
+        if limit < 1 or limit > 20:
+            limit = 5
+
+        similar = procedure_service.get_similar_procedures(procedure_id, limit=limit)
+        return jsonify(similar), 200
+
+    except ValueError as e:
+        logger.error(f"Error getting similar procedures for {procedure_id}: {e}")
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        logger.error(f"Error getting similar procedures for {procedure_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

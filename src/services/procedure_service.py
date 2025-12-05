@@ -674,6 +674,84 @@ Réponds UNIQUEMENT avec le JSON (pas de texte avant ou après):
             'top_categories': [{'category': cat, 'count': data['count'], 'usage': data['usage']} for cat, data in top_categories]
         }
 
+    def get_similar_procedures(self, procedure_id: int, limit: int = 5) -> List[Dict[str, Any]]:
+        """Trouve des procédures similaires basées sur les mots-clés et la catégorie.
+
+        Utilise l'algorithme de similarité de Jaccard pour comparer les keywords.
+
+        Args:
+            procedure_id: ID de la procédure de référence
+            limit: Nombre de procédures similaires à retourner
+
+        Returns:
+            Liste des procédures similaires avec leur score de similarité
+        """
+        # Récupérer la procédure de référence
+        reference_proc = Procedure.get_by_id(procedure_id)
+        if not reference_proc:
+            raise ValueError(f"Procedure {procedure_id} not found")
+
+        # Récupérer toutes les autres procédures actives
+        all_procedures = Procedure.get_all(is_active=True, limit=500)
+
+        # Extraire les keywords de référence (normalisés)
+        ref_keywords = set()
+        for kw in reference_proc.get('keywords', []):
+            if isinstance(kw, str):
+                ref_keywords.add(normalize_text(kw))
+
+        ref_category = reference_proc.get('category', '')
+        ref_title = normalize_text(reference_proc.get('title', ''))
+
+        # Calculer la similarité avec chaque procédure
+        similar_procedures = []
+        for proc in all_procedures:
+            # Ignorer la procédure elle-même
+            if proc['id'] == procedure_id:
+                continue
+
+            # Extraire les keywords de la procédure candidate
+            proc_keywords = set()
+            for kw in proc.get('keywords', []):
+                if isinstance(kw, str):
+                    proc_keywords.add(normalize_text(kw))
+
+            # Calculer la similarité de Jaccard pour les keywords
+            if len(ref_keywords) > 0 and len(proc_keywords) > 0:
+                intersection = len(ref_keywords.intersection(proc_keywords))
+                union = len(ref_keywords.union(proc_keywords))
+                jaccard_similarity = intersection / union if union > 0 else 0
+            else:
+                jaccard_similarity = 0
+
+            # Bonus pour même catégorie
+            category_bonus = 0.3 if proc.get('category') == ref_category else 0
+
+            # Bonus pour similarité dans le titre
+            proc_title = normalize_text(proc.get('title', ''))
+            title_words_ref = set(ref_title.split())
+            title_words_proc = set(proc_title.split())
+            if len(title_words_ref) > 0 and len(title_words_proc) > 0:
+                title_intersection = len(title_words_ref.intersection(title_words_proc))
+                title_similarity = title_intersection / max(len(title_words_ref), len(title_words_proc))
+                title_bonus = title_similarity * 0.2
+            else:
+                title_bonus = 0
+
+            # Score total de similarité
+            similarity_score = jaccard_similarity + category_bonus + title_bonus
+
+            # Ajouter seulement si score > 0.2 (suffisamment similaire)
+            if similarity_score > 0.2:
+                proc_with_score = dict(proc)
+                proc_with_score['similarity_score'] = round(similarity_score, 3)
+                similar_procedures.append(proc_with_score)
+
+        # Trier par score de similarité décroissant
+        similar_procedures.sort(key=lambda x: x['similarity_score'], reverse=True)
+
+        return similar_procedures[:limit]
+
 
 # Instance globale
 procedure_service = ProcedureService()
