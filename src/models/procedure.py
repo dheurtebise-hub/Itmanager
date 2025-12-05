@@ -6,6 +6,24 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from models.database import db
 import json
+import unicodedata
+
+
+def normalize_text(text: str) -> str:
+    """Normalise un texte en retirant les accents et en le mettant en minuscules.
+
+    Exemple:
+        normalize_text("Réception") -> "reception"
+        normalize_text("Système d'exploitation") -> "systeme d'exploitation"
+    """
+    if not text:
+        return ""
+    # Décomposer les caractères Unicode (séparer lettres et accents)
+    nfd = unicodedata.normalize('NFD', text)
+    # Filtrer les marques diacritiques (accents)
+    without_accents = ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
+    # Mettre en minuscules
+    return without_accents.lower()
 
 
 class Procedure:
@@ -107,37 +125,63 @@ class Procedure:
 
     @staticmethod
     def search_by_keywords(keywords: List[str], limit: int = 10) -> List[Dict[str, Any]]:
-        """Recherche des procédures par mots-clés."""
+        """Recherche des procédures par mots-clés (insensible aux accents)."""
         if not keywords:
             return []
 
-        # Créer une requête qui cherche les procédures contenant les mots-clés
-        query = """
-            SELECT *, 0 as match_score
-            FROM procedures
-            WHERE is_active = 1
-        """
-        params = []
+        # Normaliser les keywords de recherche (retirer accents)
+        normalized_keywords = [normalize_text(kw) for kw in keywords]
 
-        # Recherche dans le titre, la description et les keywords
-        keyword_conditions = []
-        for keyword in keywords:
-            keyword_lower = f"%{keyword.lower()}%"
-            keyword_conditions.append("""
-                (LOWER(title) LIKE ? OR
-                 LOWER(description) LIKE ? OR
-                 LOWER(keywords) LIKE ? OR
-                 LOWER(category) LIKE ?)
-            """)
-            params.extend([keyword_lower, keyword_lower, keyword_lower, keyword_lower])
+        # Récupérer toutes les procédures actives
+        query = "SELECT * FROM procedures WHERE is_active = 1"
+        procedures = db.fetchall(query)
 
-        if keyword_conditions:
-            query += " AND (" + " OR ".join(keyword_conditions) + ")"
+        # Filtrer et scorer en Python avec normalisation
+        scored_procedures = []
+        for proc in procedures:
+            proc_dict = dict(proc)
 
-        query += " ORDER BY usage_count DESC, positive_feedback_count DESC LIMIT ?"
-        params.append(limit)
+            # Créer un texte de recherche normalisé pour cette procédure
+            search_text = ' '.join([
+                proc_dict.get('title', ''),
+                proc_dict.get('description', ''),
+                proc_dict.get('keywords', ''),
+                proc_dict.get('category', '')
+            ])
+            normalized_search_text = normalize_text(search_text)
 
-        procedures = db.fetchall(query, tuple(params))
+            # Calculer le score de correspondance
+            match_score = 0
+            matches = 0
+            for norm_keyword in normalized_keywords:
+                if norm_keyword in normalized_search_text:
+                    matches += 1
+                    # Bonus si c'est dans le titre
+                    if norm_keyword in normalize_text(proc_dict.get('title', '')):
+                        match_score += 3
+                    # Bonus si c'est dans la catégorie
+                    elif norm_keyword in normalize_text(proc_dict.get('category', '')):
+                        match_score += 2
+                    else:
+                        match_score += 1
+
+            # Ajouter la procédure si au moins un mot-clé correspond
+            if matches > 0:
+                proc_dict['match_score'] = match_score
+                scored_procedures.append(proc_dict)
+
+        # Trier par score de match, puis par feedback/usage
+        scored_procedures.sort(
+            key=lambda p: (
+                p['match_score'],
+                p.get('usage_count', 0),
+                p.get('positive_feedback_count', 0)
+            ),
+            reverse=True
+        )
+
+        # Limiter les résultats
+        procedures = scored_procedures[:limit]
 
         # Convertir les JSON en listes pour chaque procédure
         result = []

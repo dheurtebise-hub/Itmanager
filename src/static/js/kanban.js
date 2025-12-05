@@ -677,6 +677,15 @@ async function loadAllProcedures() {
     }
 }
 
+// Normalise un texte en retirant les accents
+function normalizeText(text) {
+    if (!text) return '';
+    return text
+        .normalize('NFD')  // Décompose les caractères (sépare lettres et accents)
+        .replace(/[\u0300-\u036f]/g, '')  // Retire les marques diacritiques
+        .toLowerCase();
+}
+
 // Fonction de recherche avec debounce
 function searchProcedures(query) {
     clearTimeout(procedureSearchTimeout);
@@ -715,14 +724,15 @@ function performProcedureSearch(query) {
         return;
     }
 
-    const lowerQuery = query.toLowerCase();
+    // Normaliser la requête (retirer les accents)
+    const normalizedQuery = normalizeText(query);
 
-    // Rechercher dans le titre, la description et les mots-clés
+    // Rechercher dans le titre, la description et les mots-clés (insensible aux accents)
     const results = proceduresSearchCache.filter(proc => {
-        const titleMatch = proc.title?.toLowerCase().includes(lowerQuery);
-        const descMatch = proc.description?.toLowerCase().includes(lowerQuery);
-        const keywordsMatch = proc.keywords?.some(k => k.toLowerCase().includes(lowerQuery));
-        const categoryMatch = proc.category?.toLowerCase().includes(lowerQuery);
+        const titleMatch = normalizeText(proc.title || '').includes(normalizedQuery);
+        const descMatch = normalizeText(proc.description || '').includes(normalizedQuery);
+        const keywordsMatch = proc.keywords?.some(k => normalizeText(k).includes(normalizedQuery));
+        const categoryMatch = normalizeText(proc.category || '').includes(normalizedQuery);
 
         return titleMatch || descMatch || keywordsMatch || categoryMatch;
     });
