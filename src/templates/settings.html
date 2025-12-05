@@ -9,6 +9,81 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Styles pour les onglets */
+.tabs-container {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tabs-header {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border-color);
+    overflow-x: auto;
+    gap: 0;
+}
+
+.tab-button {
+    flex: 1;
+    min-width: 120px;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    background: rgba(0,0,0,0.03);
+    color: #333;
+}
+
+.tab-button.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+    background: var(--bg-secondary);
+}
+
+.tab-content {
+    display: none;
+    padding: 2rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tabs-header {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .tab-button {
+        font-size: 0.875rem;
+        padding: 0.875rem 1rem;
+        min-width: 100px;
+    }
+
+    .tab-content {
+        padding: 1.5rem;
+    }
+}
 </style>
 {% endblock %}
 
@@ -25,9 +100,20 @@
 
 <div class="setup-container">
     <div class="setup-card">
-        <h2 class="card-title">Configuration</h2>
+        <div class="tabs-container">
+            <!-- En-têtes des onglets -->
+            <div class="tabs-header">
+                <button class="tab-button active" onclick="switchTab('general')">⚙️ Général</button>
+                <button class="tab-button" onclick="switchTab('outlook')">📁 Dossiers Outlook</button>
+                <button class="tab-button" onclick="switchTab('categories')">🏷️ Catégories</button>
+                <button class="tab-button" onclick="switchTab('archive')">🗄️ Archivage</button>
+                <button class="tab-button" onclick="switchTab('import-export')">📦 Import/Export</button>
+                <button class="tab-button" onclick="switchTab('backups')">💾 Sauvegardes</button>
+            </div>
 
-        <div class="setup-content">
+            <!-- Onglet Général -->
+            <div id="tab-general" class="tab-content active">
+                <h2 class="card-title">Configuration générale</h2>
             <!-- Synchronisation -->
             <div class="form-group">
                 <label>Synchronisation automatique</label>
@@ -55,9 +141,26 @@
                 </label>
             </div>
 
-            <!-- Dossiers Outlook -->
+            <!-- Thème -->
             <div class="form-group">
-                <h3>📁 Dossiers Outlook à surveiller</h3>
+                <label>Thème</label>
+                <select id="themeSelect" onchange="changeTheme()">
+                    <option value="light">Clair</option>
+                    <option value="dark">Sombre</option>
+                </select>
+            </div>
+
+            <!-- Actions -->
+            <div class="setup-actions">
+                <button class="btn btn-primary" onclick="saveSettings()">💾 Enregistrer les paramètres</button>
+            </div>
+        </div>
+
+        <!-- Onglet Dossiers Outlook -->
+        <div id="tab-outlook" class="tab-content">
+            <h2 class="card-title">Dossiers Outlook à surveiller</h2>
+
+            <div class="form-group">
                 <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
                     ⚠️ <strong>Important :</strong> Seuls les dossiers cochés ci-dessous seront synchronisés.
                     Si vous ne voyez pas d'emails lors de la synchronisation, vérifiez que le bon dossier est activé.
@@ -80,31 +183,17 @@
                 <div id="outlookFoldersList" class="mt-2" style="display: none;"></div>
             </div>
 
-            <!-- Archivage automatique -->
-            <div class="form-group">
-                <h3>🗄️ Archivage automatique</h3>
-                <p style="color: #666; font-size: 0.875rem; margin-bottom: 0.5rem;">
-                    Les tickets résolus depuis plus de 7 jours seront automatiquement archivés.
-                </p>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button class="btn btn-secondary" onclick="previewArchive()">👁️ Aperçu</button>
-                    <button class="btn btn-warning" onclick="runArchiveNow()">🗑️ Archiver maintenant</button>
-                    <span id="archivePreview" style="margin-left: 1rem; color: #666;"></span>
-                </div>
+            <!-- Actions -->
+            <div class="setup-actions">
+                <button class="btn btn-primary" onclick="saveSettings()">💾 Enregistrer les dossiers</button>
             </div>
+        </div>
 
-            <!-- Thème -->
-            <div class="form-group">
-                <label>Thème</label>
-                <select id="themeSelect" onchange="changeTheme()">
-                    <option value="light">Clair</option>
-                    <option value="dark">Sombre</option>
-                </select>
-            </div>
+        <!-- Onglet Catégories -->
+        <div id="tab-categories" class="tab-content">
+            <h2 class="card-title">Gestion des catégories</h2>
 
-            <!-- Gestion des catégories -->
             <div class="form-group">
-                <h3>🏷️ Gestion des catégories</h3>
                 <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
                     Gérez les catégories utilisées pour classer les tickets et les procédures.
                 </p>
@@ -118,17 +207,29 @@
 
                 <div id="categoriesList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
             </div>
+        </div>
 
-            <!-- Backups -->
+        <!-- Onglet Archivage -->
+        <div id="tab-archive" class="tab-content">
+            <h2 class="card-title">Archivage automatique</h2>
+
             <div class="form-group">
-                <h3>💾 Sauvegardes</h3>
-                <button class="btn btn-primary" onclick="createBackup()">Créer une sauvegarde</button>
-                <div id="backupsList" class="mt-2"></div>
+                <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
+                    Les tickets résolus depuis plus de 7 jours seront automatiquement archivés et leurs emails déplacés vers le dossier App-Archives.
+                </p>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="previewArchive()">👁️ Aperçu</button>
+                    <button class="btn btn-warning" onclick="runArchiveNow()">🗑️ Archiver maintenant</button>
+                    <span id="archivePreview" style="margin-left: 1rem; color: #666;"></span>
+                </div>
             </div>
+        </div>
 
-            <!-- Import/Export -->
+        <!-- Onglet Import/Export -->
+        <div id="tab-import-export" class="tab-content">
+            <h2 class="card-title">Import / Export</h2>
+
             <div class="form-group">
-                <h3>📦 Import / Export</h3>
                 <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
                     Exportez ou importez vos données pour les sauvegarder ou les transférer vers une autre installation.
                 </p>
@@ -201,12 +302,21 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Actions -->
-            <div class="setup-actions">
-                <button class="btn btn-primary" onclick="saveSettings()">Enregistrer</button>
-                <button class="btn btn-secondary" onclick="window.location.reload()">Annuler</button>
+        <!-- Onglet Sauvegardes -->
+        <div id="tab-backups" class="tab-content">
+            <h2 class="card-title">Sauvegardes</h2>
+
+            <div class="form-group">
+                <p style="color: #666; font-size: 0.875rem; margin-bottom: 1rem;">
+                    Créez et gérez les sauvegardes de votre base de données.
+                </p>
+                <button class="btn btn-primary" onclick="createBackup()">💾 Créer une nouvelle sauvegarde</button>
+                <div id="backupsList" class="mt-2" style="margin-top: 1rem;"></div>
             </div>
+        </div>
+
         </div>
     </div>
 </div>
@@ -216,6 +326,24 @@
 {% block extra_js %}
 <script>
 let outlookFolders = [];
+
+// Gestion des onglets
+function switchTab(tabId) {
+    // Désactiver tous les onglets
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Activer l'onglet sélectionné
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.add('active');
+
+    // Sauvegarder l'onglet actif dans le localStorage
+    localStorage.setItem('settingsActiveTab', tabId);
+}
 
 async function saveSettings() {
     const settings = {
@@ -469,6 +597,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('slaEnabled').checked = config.sla_enabled;
     document.getElementById('themeSelect').value = config.theme;
 
+    // Restaurer l'onglet actif depuis le localStorage
+    const savedTab = localStorage.getItem('settingsActiveTab');
+    if (savedTab) {
+        // Désactiver l'onglet par défaut
+        document.querySelector('.tab-button.active')?.classList.remove('active');
+        document.querySelector('.tab-content.active')?.classList.remove('active');
+
+        // Activer l'onglet sauvegardé
+        const tabButton = Array.from(document.querySelectorAll('.tab-button')).find(
+            btn => btn.textContent.includes(getTabEmoji(savedTab))
+        );
+        if (tabButton) {
+            tabButton.classList.add('active');
+            document.getElementById('tab-' + savedTab)?.classList.add('active');
+        }
+    }
+
     loadBackups();
 
     // Charger automatiquement les dossiers Outlook
@@ -477,6 +622,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Charger l'aperçu de l'archivage
     previewArchive();
 });
+
+// Fonction helper pour obtenir l'emoji de l'onglet
+function getTabEmoji(tabId) {
+    const emojis = {
+        'general': '⚙️',
+        'outlook': '📁',
+        'categories': '🏷️',
+        'archive': '🗄️',
+        'import-export': '📦',
+        'backups': '💾'
+    };
+    return emojis[tabId] || '';
+}
 
 // ============================================
 // FONCTIONS IMPORT/EXPORT
