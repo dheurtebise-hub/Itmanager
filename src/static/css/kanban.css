@@ -1151,3 +1151,299 @@ select.form-control {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+
+/* ============================================
+   INTERFACE PROCÉDURES MODERNE (Style Claude.ai)
+   ============================================ */
+
+/* Header principal */
+.procedure-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1.25rem 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e5e5e5);
+}
+
+.procedure-main-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary, #1a1a1a);
+    margin: 0;
+}
+
+/* Bouton Nouvelle procédure */
+.btn-new-procedure {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-new-procedure:hover {
+    background: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-new-procedure .plus-icon {
+    font-size: 1.125rem;
+    font-weight: 300;
+}
+
+/* Conteneur de recherche */
+.procedure-search-wrapper {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e5e5e5);
+}
+
+.procedure-search-input-container {
+    position: relative;
+    width: 100%;
+}
+
+.procedure-search-input-container .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    color: var(--text-tertiary, #999);
+    pointer-events: none;
+}
+
+.procedure-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border: 1px solid var(--border-color, #e5e5e5);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: var(--bg-secondary, #f9f9f9);
+    transition: all 0.2s ease;
+}
+
+.procedure-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #4CAF50);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.procedure-search-input::placeholder {
+    color: var(--text-tertiary, #999);
+}
+
+/* Meta section (compteur + sélection) */
+.procedure-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #e5e5e5);
+    background: var(--bg-secondary, #fafafa);
+}
+
+.procedure-count {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #666);
+    font-weight: 500;
+}
+
+.btn-select-procedures {
+    background: transparent;
+    border: none;
+    color: var(--primary-color, #4CAF50);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.btn-select-procedures:hover {
+    background: rgba(76, 175, 80, 0.1);
+}
+
+/* Liste des procédures */
+.procedure-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+}
+
+/* Item de procédure (style conversation) */
+.procedure-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: #fff;
+}
+
+.procedure-item:hover {
+    background: var(--bg-hover, #f8f8f8);
+}
+
+.procedure-item.selected {
+    background: rgba(76, 175, 80, 0.08);
+    border-left: 3px solid var(--primary-color, #4CAF50);
+}
+
+.procedure-item-title {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary, #1a1a1a);
+    margin: 0 0 0.375rem 0;
+    line-height: 1.4;
+}
+
+.procedure-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-tertiary, #999);
+}
+
+.procedure-item-timestamp {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.procedure-item-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    background: var(--bg-secondary, #f0f0f0);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #666);
+}
+
+.procedure-item-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.procedure-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.procedure-stat-icon {
+    font-size: 0.875rem;
+}
+
+/* État vide */
+.procedure-list .procedure-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.procedure-list .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.procedure-list .empty-state-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary, #1a1a1a);
+    margin-bottom: 0.5rem;
+}
+
+.procedure-list .empty-state-subtext {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #666);
+    max-width: 300px;
+    line-height: 1.5;
+}
+
+/* Scrollbar personnalisée */
+.procedure-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.procedure-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.procedure-list::-webkit-scrollbar-thumb {
+    background: #ddd;
+    border-radius: 3px;
+}
+
+.procedure-list::-webkit-scrollbar-thumb:hover {
+    background: #ccc;
+}
+
+/* Animation d'apparition */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.procedure-item {
+    animation: fadeInUp 0.3s ease;
+}
+
+/* Mode sélection */
+.procedure-list.selection-mode .procedure-item {
+    padding-left: 3rem;
+}
+
+.procedure-item-checkbox {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .procedure-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .btn-new-procedure {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .procedure-meta {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+}

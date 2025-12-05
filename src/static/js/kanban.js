@@ -987,3 +987,236 @@ document.addEventListener('click', (e) => {
 // Charger les procédures au démarrage
 loadAllProcedures();
 
+
+// ============================================
+// INTERFACE PROCÉDURES MODERNE (Style Claude.ai)
+// ============================================
+
+// Charger et afficher toutes les procédures
+async function loadProceduresModern() {
+    try {
+        const procedures = await api.getProcedures();
+        renderProcedureListModern(procedures);
+        updateProcedureCount(procedures.length);
+    } catch (error) {
+        console.error('Error loading procedures:', error);
+        showNotification('❌ Erreur lors du chargement des procédures', 'error');
+    }
+}
+
+// Afficher la liste des procédures
+function renderProcedureListModern(procedures) {
+    const listContainer = document.getElementById('procedure-list');
+
+    if (!procedures || procedures.length === 0) {
+        listContainer.innerHTML = '<div class="procedure-empty-state"><div class="empty-state-icon">📖</div><div class="empty-state-text">Aucune procédure trouvée</div><div class="empty-state-subtext">Créez votre première procédure ou importez-en depuis un fichier</div></div>';
+        return;
+    }
+
+    // Trier par usage récent (usage_count desc)
+    const sortedProcedures = procedures.sort((a, b) => {
+        return (b.usage_count || 0) - (a.usage_count || 0);
+    });
+
+    listContainer.innerHTML = sortedProcedures.map(proc => createProcedureItemHTML(proc)).join('');
+}
+
+// Créer le HTML d'un item de procédure
+function createProcedureItemHTML(procedure) {
+    const timestamp = getRelativeTime(procedure.updated_at || procedure.created_at);
+    const usageCount = procedure.usage_count || 0;
+    const positiveFeedback = procedure.positive_feedback_count || 0;
+    const negativeFeedback = procedure.negative_feedback_count || 0;
+    const totalFeedback = positiveFeedback + negativeFeedback;
+    const successRate = totalFeedback > 0 ? Math.round((positiveFeedback / totalFeedback) * 100) : null;
+
+    let html = '<div class="procedure-item" onclick="viewProcedureDetails(' + procedure.id + ')">';
+    html += '<h3 class="procedure-item-title">' + escapeHtml(procedure.title || 'Sans titre') + '</h3>';
+    html += '<div class="procedure-item-meta">';
+    html += '<span class="procedure-item-timestamp">Dernier message il y a ' + timestamp + '</span>';
+
+    if (procedure.category) {
+        html += '<span class="procedure-item-category">📁 ' + escapeHtml(procedure.category) + '</span>';
+    }
+
+    html += '<div class="procedure-item-stats">';
+
+    if (usageCount > 0) {
+        html += '<span class="procedure-stat" title="Nombre d\'utilisations">';
+        html += '<span class="procedure-stat-icon">👁️</span>';
+        html += '<span>' + usageCount + '</span>';
+        html += '</span>';
+    }
+
+    if (successRate !== null) {
+        const icon = successRate >= 80 ? '✅' : (successRate >= 50 ? '👍' : '👎');
+        html += '<span class="procedure-stat" title="Taux de succès">';
+        html += '<span class="procedure-stat-icon">' + icon + '</span>';
+        html += '<span>' + successRate + '%</span>';
+        html += '</span>';
+    }
+
+    html += '</div></div></div>';
+    return html;
+}
+
+// Calculer le temps relatif
+function getRelativeTime(dateString) {
+    if (!dateString) return 'date inconnue';
+
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMinutes < 1) return "à l'instant";
+    if (diffMinutes < 60) return diffMinutes + ' minute' + (diffMinutes > 1 ? 's' : '');
+    if (diffHours < 24) return diffHours + ' heure' + (diffHours > 1 ? 's' : '');
+    if (diffDays < 7) return diffDays + ' jour' + (diffDays > 1 ? 's' : '');
+    if (diffDays < 30) return Math.floor(diffDays / 7) + ' semaine' + (Math.floor(diffDays / 7) > 1 ? 's' : '');
+    return Math.floor(diffDays / 30) + ' mois';
+}
+
+// Mettre à jour le compteur de procédures
+function updateProcedureCount(count) {
+    const countElement = document.getElementById('procedure-count');
+    if (countElement) {
+        countElement.textContent = count + ' procédure' + (count > 1 ? 's' : '');
+    }
+}
+
+// Recherche moderne avec debounce
+let searchModernTimeout = null;
+function searchProceduresModern(query) {
+    clearTimeout(searchModernTimeout);
+
+    searchModernTimeout = setTimeout(async () => {
+        if (!query || query.trim().length === 0) {
+            loadProceduresModern();
+            return;
+        }
+
+        try {
+            if (procedureSearchIndex.lastUpdate) {
+                performModernSearch(query.trim());
+            } else {
+                const procedures = await api.getProcedures();
+                const filtered = procedures.filter(proc => {
+                    const searchText = (proc.title + ' ' + proc.description + ' ' + proc.category).toLowerCase();
+                    return searchText.includes(query.toLowerCase());
+                });
+                renderProcedureListModern(filtered);
+                updateProcedureCount(filtered.length);
+            }
+        } catch (error) {
+            console.error('Error searching procedures:', error);
+        }
+    }, 300);
+}
+
+// Recherche utilisant l'index inversé
+function performModernSearch(query) {
+    const normalizedQuery = normalizeText(query);
+    const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length >= 2);
+
+    const candidateScores = {};
+
+    queryWords.forEach(queryWord => {
+        Object.keys(procedureSearchIndex.invertedIndex).forEach(indexWord => {
+            if (indexWord.includes(queryWord) || queryWord.includes(indexWord)) {
+                const procedureIds = procedureSearchIndex.invertedIndex[indexWord];
+                procedureIds.forEach(id => {
+                    if (!candidateScores[id]) candidateScores[id] = 0;
+                    const matchQuality = Math.min(indexWord.length, queryWord.length) / Math.max(indexWord.length, queryWord.length);
+                    candidateScores[id] += matchQuality;
+                });
+            }
+        });
+    });
+
+    const results = Object.keys(candidateScores).map(id => {
+        return procedureSearchIndex.procedureMap[id];
+    });
+
+    renderProcedureListModern(results);
+    updateProcedureCount(results.length);
+}
+
+// Voir les détails d'une procédure
+function viewProcedureDetails(procedureId) {
+    openProcedureModal(procedureId);
+}
+
+// Ouvrir le modal de création de procédure
+function openCreateProcedureModal() {
+    const modal = document.getElementById('procedureModal');
+    const modalTitle = document.getElementById('procedureModalTitle');
+    const form = document.getElementById('procedureForm');
+
+    form.reset();
+    document.getElementById('procedureId').value = '';
+    modalTitle.textContent = 'Créer une procédure';
+    modal.style.display = 'flex';
+}
+
+// Ouvrir le modal de procédure en mode lecture
+async function openProcedureModal(procedureId) {
+    try {
+        const procedure = await api.getProcedure(procedureId);
+
+        const modal = document.getElementById('procedureModal');
+        const modalTitle = document.getElementById('procedureModalTitle');
+
+        document.getElementById('procedureId').value = procedure.id;
+        document.getElementById('procedureTitle').value = procedure.title || '';
+        document.getElementById('procedureCategory').value = procedure.category || '';
+        document.getElementById('procedureDescription').value = procedure.description || '';
+        document.getElementById('procedureKeywords').value = (procedure.keywords || []).join(', ');
+
+        const stepsContainer = document.getElementById('procedureSteps');
+        if (stepsContainer && procedure.steps) {
+            stepsContainer.innerHTML = procedure.steps.map((step, index) => {
+                return '<div class="step-item"><span class="step-number">' + (index + 1) + '</span><input type="text" value="' + escapeHtml(step) + '" class="form-control"></div>';
+            }).join('');
+        }
+
+        modalTitle.textContent = 'Détails de la procédure';
+        modal.style.display = 'flex';
+
+    } catch (error) {
+        console.error('Error loading procedure details:', error);
+        showNotification('❌ Erreur lors du chargement de la procédure', 'error');
+    }
+}
+
+// Mode sélection
+let selectionMode = false;
+function toggleProcedureSelection() {
+    selectionMode = !selectionMode;
+    const listContainer = document.getElementById('procedure-list');
+    const btn = document.querySelector('.btn-select-procedures');
+
+    if (selectionMode) {
+        listContainer.classList.add('selection-mode');
+        btn.textContent = 'Annuler';
+    } else {
+        listContainer.classList.remove('selection-mode');
+        btn.textContent = 'Sélectionner';
+    }
+}
+
+// Helper: Échapper le HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Charger les procédures au démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    loadProceduresModern();
+});

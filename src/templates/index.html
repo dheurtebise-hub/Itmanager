@@ -120,33 +120,43 @@
             </div>
         </div>
 
-        <!-- Procédure -->
+        <!-- Procédures (Style Claude.ai) -->
         <div class="kanban-column column-procedure">
-            <div class="column-header">
-                <div class="column-title">
-                    <span>📋</span>
-                    <span>Procédure</span>
-                </div>
-            </div>
-            <div class="procedure-content" id="procedure-content">
-                <div class="procedure-empty-state">
-                    <div class="empty-state-icon">📖</div>
-                    <div>Cliquez sur un ticket pour voir les procédures suggérées</div>
-                </div>
+            <!-- Header avec titre et bouton nouvelle procédure -->
+            <div class="procedure-header">
+                <h2 class="procedure-main-title">Procédures</h2>
+                <button class="btn-new-procedure" onclick="openCreateProcedureModal()">
+                    <span class="plus-icon">+</span>
+                    <span>Nouvelle procédure</span>
+                </button>
             </div>
 
-            <!-- Zone de recherche de procédures -->
-            <div class="procedure-search-container">
-                <div class="procedure-search-results" id="procedure-search-results"></div>
-                <div class="procedure-search-box">
+            <!-- Barre de recherche -->
+            <div class="procedure-search-wrapper">
+                <div class="procedure-search-input-container">
                     <span class="search-icon">🔍</span>
                     <input
                         type="text"
                         id="procedureQuickSearchInput"
-                        placeholder="Rechercher une procédure..."
-                        oninput="searchProcedures(this.value)"
-                        onfocus="showProcedureSearchResults()"
+                        class="procedure-search-input"
+                        placeholder="Rechercher dans vos procédures..."
+                        oninput="searchProceduresModern(this.value)"
                     >
+                </div>
+            </div>
+
+            <!-- Compteur et sélection -->
+            <div class="procedure-meta">
+                <span class="procedure-count" id="procedure-count">0 procédures</span>
+                <button class="btn-select-procedures" onclick="toggleProcedureSelection()">Sélectionner</button>
+            </div>
+
+            <!-- Liste des procédures -->
+            <div class="procedure-list" id="procedure-list">
+                <div class="procedure-empty-state">
+                    <div class="empty-state-icon">📖</div>
+                    <div class="empty-state-text">Aucune procédure trouvée</div>
+                    <div class="empty-state-subtext">Créez votre première procédure ou importez-en depuis un fichier</div>
                 </div>
             </div>
         </div>
