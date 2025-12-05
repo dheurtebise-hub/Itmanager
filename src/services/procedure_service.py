@@ -6,10 +6,14 @@ import json
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from models.procedure import Procedure
+from models.procedure import Procedure, normalize_text
 from models.ticket import Ticket
 from services.ai_service import AIService
 
+
+# Seuil minimum de confiance pour suggérer une procédure (0-1)
+# Les procédures avec un score < 0.25 ne seront pas suggérées
+MIN_CONFIDENCE_THRESHOLD = 0.25
 
 class ProcedureService:
     """Service pour gérer les procédures et leurs suggestions."""
@@ -48,21 +52,29 @@ class ProcedureService:
         # Extraire les mots-clés du ticket
         keywords = self._extract_keywords(ticket)
 
-        # Rechercher par mots-clés
-        procedures = Procedure.search_by_keywords(keywords, limit=5)
+        # Rechercher par mots-clés (augmenté à 10 résultats)
+        procedures = Procedure.search_by_keywords(keywords, limit=10)
 
         # Si aucune procédure n'est trouvée, retourner une liste vide
         if not procedures:
+            self.logger.info(f"Aucune procédure trouvée pour les mots-clés: {keywords}")
             return []
 
         # Calculer un score de pertinence pour chaque procédure
         for proc in procedures:
             proc['confidence'] = self._calculate_confidence(ticket, proc)
 
-        # Trier par score de pertinence
-        procedures.sort(key=lambda x: x.get('confidence', 0), reverse=True)
+        # Filtrer les procédures avec score trop faible (< seuil minimum)
+        filtered_procedures = [p for p in procedures if p.get('confidence', 0) >= MIN_CONFIDENCE_THRESHOLD]
 
-        return procedures
+        if len(filtered_procedures) < len(procedures):
+            removed = len(procedures) - len(filtered_procedures)
+            self.logger.info(f"{removed} procédure(s) filtrée(s) (score < {MIN_CONFIDENCE_THRESHOLD})")
+
+        # Trier par score de pertinence décroissant
+        filtered_procedures.sort(key=lambda x: x.get('confidence', 0), reverse=True)
+
+        return filtered_procedures
 
     def _extract_keywords(self, ticket: Dict[str, Any]) -> List[str]:
         """Extrait les mots-clés d'un ticket."""
@@ -96,34 +108,62 @@ class ProcedureService:
         return keywords[:10]  # Limiter à 10 mots-clés
 
     def _calculate_confidence(self, ticket: Dict[str, Any], procedure: Dict[str, Any]) -> float:
-        """Calcule un score de confiance entre un ticket et une procédure."""
+        """Calcule un score de confiance amélioré entre un ticket et une procédure.
+
+        Algorithme:
+        - Catégorie: 35% (essentiel)
+        - Mots-clés: 35% (essentiel)
+        - Feedback: 20% (qualité)
+        - Usage: 10% (popularité)
+
+        Returns:
+            float: Score entre 0 et 1
+        """
         score = 0.0
 
-        # Correspondance de catégorie (poids : 0.4)
+        # 1. Correspondance de catégorie (poids : 0.35)
         if ticket.get('category') and ticket['category'] == procedure.get('category'):
-            score += 0.4
+            score += 0.35
 
-        # Correspondance de mots-clés (poids : 0.3)
-        ticket_text = f"{ticket.get('subject', '')} {ticket.get('summary', '')}".lower()
+        # 2. Correspondance de mots-clés avec normalisation (poids : 0.35)
+        ticket_text = f"{ticket.get('subject', '')} {ticket.get('summary', '')} {ticket.get('body', '')[:500]}"
+        normalized_ticket_text = normalize_text(ticket_text)
+
         procedure_keywords = procedure.get('keywords', [])
-        if isinstance(procedure_keywords, list):
-            matching_keywords = sum(1 for kw in procedure_keywords if kw.lower() in ticket_text)
-            if procedure_keywords:
-                score += 0.3 * (matching_keywords / len(procedure_keywords))
+        if isinstance(procedure_keywords, list) and procedure_keywords:
+            matching_keywords = 0
+            for kw in procedure_keywords:
+                normalized_kw = normalize_text(kw)
+                if normalized_kw and normalized_kw in normalized_ticket_text:
+                    matching_keywords += 1
 
-        # Score basé sur les feedbacks précédents (poids : 0.2)
+            # Score proportionnel au nombre de mots-clés matchés
+            keyword_ratio = matching_keywords / len(procedure_keywords)
+            score += 0.35 * keyword_ratio
+
+        # 3. Score basé sur les feedbacks (poids : 0.20)
         positive = procedure.get('positive_feedback_count', 0)
         negative = procedure.get('negative_feedback_count', 0)
         total_feedback = positive + negative
-        if total_feedback > 0:
-            feedback_score = positive / total_feedback
-            score += 0.2 * feedback_score
 
-        # Bonus pour les procédures populaires (poids : 0.1)
+        if total_feedback >= 5:  # Seuil de confiance (au moins 5 feedbacks)
+            feedback_score = positive / total_feedback
+            score += 0.20 * feedback_score
+        elif total_feedback > 0:
+            # Feedbacks incomplets: pondération réduite
+            feedback_score = positive / total_feedback
+            score += 0.10 * feedback_score  # Seulement 10% au lieu de 20%
+        else:
+            # Nouvelles procédures: bonus de départ pour cold start
+            score += 0.10
+
+        # 4. Bonus pour les procédures populaires (poids : 0.10)
         usage_count = procedure.get('usage_count', 0)
         if usage_count > 0:
-            # Normaliser entre 0 et 0.1
-            score += min(0.1, usage_count / 100)
+            # Normalisation logarithmique pour éviter la domination des vieilles procédures
+            import math
+            normalized_usage = min(1.0, math.log10(usage_count + 1) / 2)  # log10(100) = 2
+            score += 0.10 * normalized_usage
 
         return min(1.0, score)
 
