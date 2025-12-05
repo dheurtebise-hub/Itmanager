@@ -1023,7 +1023,7 @@ select.form-control {
 
 .procedure-search-box .search-icon {
     position: absolute;
-    left: 1rem;
+    left: 1.5rem;
     top: 50%;
     transform: translateY(-50%);
     font-size: 1rem;
