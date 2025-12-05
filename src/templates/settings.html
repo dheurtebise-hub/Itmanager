@@ -12,33 +12,40 @@
 
 /* Styles pour les onglets */
 .tabs-container {
+    display: flex;
+    gap: 0;
     background: var(--bg-secondary);
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-height: 500px;
 }
 
 .tabs-header {
     display: flex;
+    flex-direction: column;
     background: var(--bg-tertiary);
-    border-bottom: 2px solid var(--border-color);
-    overflow-x: auto;
-    gap: 0;
+    border-right: 2px solid var(--border-color);
+    min-width: 200px;
+    padding: 0.5rem 0;
 }
 
 .tab-button {
-    flex: 1;
-    min-width: 120px;
+    width: 100%;
     padding: 1rem 1.5rem;
     background: transparent;
     border: none;
-    border-bottom: 3px solid transparent;
+    border-left: 3px solid transparent;
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 500;
     color: #666;
     transition: all 0.2s ease;
     white-space: nowrap;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .tab-button:hover {
@@ -48,14 +55,17 @@
 
 .tab-button.active {
     color: var(--accent-primary);
-    border-bottom-color: var(--accent-primary);
+    border-left-color: var(--accent-primary);
     background: var(--bg-secondary);
+    font-weight: 600;
 }
 
 .tab-content {
     display: none;
+    flex: 1;
     padding: 2rem;
     animation: fadeIn 0.3s ease;
+    overflow-y: auto;
 }
 
 .tab-content.active {
@@ -63,21 +73,38 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+    .tabs-container {
+        flex-direction: column;
+        min-height: auto;
+    }
+
     .tabs-header {
-        flex-wrap: nowrap;
+        flex-direction: row;
+        border-right: none;
+        border-bottom: 2px solid var(--border-color);
+        min-width: auto;
         overflow-x: auto;
+        padding: 0;
     }
 
     .tab-button {
         font-size: 0.875rem;
         padding: 0.875rem 1rem;
-        min-width: 100px;
+        min-width: 120px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        justify-content: center;
+    }
+
+    .tab-button.active {
+        border-left-color: transparent;
+        border-bottom-color: var(--accent-primary);
     }
 
     .tab-content {
