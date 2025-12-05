@@ -78,35 +78,126 @@ class ProcedureService:
         return filtered_procedures
 
     def _extract_keywords(self, ticket: Dict[str, Any]) -> List[str]:
-        """Extrait les mots-clés d'un ticket."""
+        """Extrait intelligemment les mots-clés d'un ticket.
+
+        Utilise:
+        - Suppression des stopwords français
+        - Filtrage des mots courts (< 3 caractères)
+        - Détection des noms propres (capitalisés)
+        - Analyse de fréquence
+        - Normalisation des accents
+        """
+        import re
+        from collections import Counter
+
         keywords = []
 
-        # Ajouter la catégorie si disponible
+        # Ajouter la catégorie en premier (toujours pertinent)
         if ticket.get('category'):
             keywords.append(ticket['category'])
 
-        # Extraire des mots-clés du sujet et du résumé
-        text = f"{ticket.get('subject', '')} {ticket.get('summary', '')}"
-        text = text.lower()
+        # Combiner sujet, résumé et début du body
+        text = ' '.join([
+            ticket.get('subject', ''),
+            ticket.get('summary', ''),
+            ticket.get('body', '')[:500]  # Premier 500 chars du body
+        ])
 
-        # Liste de mots-clés techniques courants
-        technical_keywords = [
-            'installation', 'installer', 'logiciel', 'licence', 'activation',
-            'ordinateur', 'pc', 'portable', 'imprimante', 'scanner',
-            'réseau', 'wifi', 'internet', 'connexion', 'vpn',
-            'email', 'outlook', 'messagerie', 'mot de passe', 'password',
-            'accès', 'droits', 'permission', 'dossier', 'fichier',
-            'erreur', 'problème', 'bug', 'plantage', 'lenteur',
-            'mise à jour', 'update', 'upgrade', 'configuration',
-            'sauvegarde', 'backup', 'restauration', 'récupération',
-            'antivirus', 'sécurité', 'firewall', 'malware'
-        ]
+        # Stopwords français courants
+        french_stopwords = {
+            'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'au', 'aux',
+            'ce', 'cet', 'cette', 'ces', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes',
+            'son', 'sa', 'ses', 'notre', 'nos', 'votre', 'vos', 'leur', 'leurs',
+            'je', 'tu', 'il', 'elle', 'nous', 'vous', 'ils', 'elles',
+            'me', 'te', 'se', 'lui', 'moi', 'toi',
+            'et', 'ou', 'mais', 'donc', 'or', 'ni', 'car',
+            'dans', 'sur', 'sous', 'avec', 'sans', 'pour', 'par', 'en',
+            'qui', 'que', 'quoi', 'dont', 'où',
+            'à', 'a', 'y', 'si', 'ne', 'pas', 'plus', 'très', 'tout', 'tous',
+            'être', 'avoir', 'faire', 'dire', 'aller', 'voir', 'savoir', 'vouloir',
+            'est', 'sont', 'été', 'était', 'ai', 'as', 'avons', 'avez', 'ont',
+            'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'can', 'could', 'should'
+        }
 
-        for keyword in technical_keywords:
-            if keyword in text:
-                keywords.append(keyword)
+        # Extraire les noms propres (mots capitalisés hors début de phrase)
+        proper_nouns = []
+        sentences = text.split('.')
+        for sentence in sentences:
+            words_in_sentence = sentence.split()
+            # Ignorer le premier mot de chaque phrase (peut être capitalisé normalement)
+            for word in words_in_sentence[1:]:
+                # Nettoyer la ponctuation
+                clean_word = re.sub(r'[^\w\-]', '', word)
+                if clean_word and clean_word[0].isupper() and len(clean_word) > 2:
+                    # C'est probablement un nom propre (logiciel, marque, etc.)
+                    proper_nouns.append(clean_word.lower())
 
-        return keywords[:10]  # Limiter à 10 mots-clés
+        # Tokenization : extraire tous les mots (lettres, chiffres, tirets)
+        words = re.findall(r'\b[\w\-]+\b', text.lower())
+
+        # Filtrer et normaliser
+        filtered_words = []
+        for word in words:
+            # Normaliser (retirer accents)
+            normalized = normalize_text(word)
+
+            # Filtrer:
+            # - Longueur >= 3 caractères
+            # - Pas un stopword
+            # - Contient au moins une lettre (pas juste des chiffres)
+            if (len(normalized) >= 3 and
+                normalized not in french_stopwords and
+                re.search(r'[a-z]', normalized)):
+                filtered_words.append(normalized)
+
+        # Compter les fréquences
+        word_freq = Counter(filtered_words)
+
+        # Extraire les mots techniques/IT courants (boost leur score)
+        technical_terms = {
+            'outlook', 'windows', 'office', 'excel', 'word', 'powerpoint',
+            'vpn', 'wifi', 'reseau', 'internet', 'email', 'messagerie',
+            'imprimante', 'scanner', 'ordinateur', 'portable', 'serveur',
+            'logiciel', 'application', 'programme', 'installation', 'configuration',
+            'licence', 'activation', 'mise', 'jour', 'update', 'upgrade',
+            'erreur', 'probleme', 'bug', 'plantage', 'crash', 'lenteur',
+            'mot', 'passe', 'password', 'compte', 'acces', 'droits', 'permission',
+            'fichier', 'dossier', 'sauvegarde', 'backup', 'restauration',
+            'antivirus', 'securite', 'firewall', 'malware', 'virus'
+        }
+
+        # Combiner les scores
+        keyword_scores = {}
+        for word, count in word_freq.items():
+            score = count
+            # Bonus pour les termes techniques
+            if word in technical_terms:
+                score += 3
+            # Bonus pour les mots longs (plus spécifiques)
+            if len(word) >= 6:
+                score += 1
+            keyword_scores[word] = score
+
+        # Ajouter les noms propres avec score élevé (très spécifiques)
+        for proper_noun in set(proper_nouns):
+            if proper_noun not in keyword_scores:
+                keyword_scores[proper_noun] = 5  # Score élevé pour les noms propres
+            else:
+                keyword_scores[proper_noun] += 3  # Boost si déjà présent
+
+        # Trier par score décroissant
+        sorted_keywords = sorted(keyword_scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Prendre les top mots-clés (sans la catégorie déjà ajoutée)
+        for word, score in sorted_keywords:
+            if word != normalize_text(ticket.get('category', '')):  # Éviter doublon catégorie
+                keywords.append(word)
+                if len(keywords) >= 10:  # Max 10 keywords au total
+                    break
+
+        self.logger.debug(f"Mots-clés extraits: {keywords}")
+        return keywords
 
     def _calculate_confidence(self, ticket: Dict[str, Any], procedure: Dict[str, Any]) -> float:
         """Calcule un score de confiance amélioré entre un ticket et une procédure.
