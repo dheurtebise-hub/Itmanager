@@ -671,14 +671,79 @@ async function markAsNotUserRequestFromCard(ticketId) {
 let procedureSearchTimeout = null;
 let proceduresSearchCache = [];
 
+// Index de recherche en mémoire pour des recherches ultra-rapides
+let procedureSearchIndex = {
+    invertedIndex: {},      // Map: mot -> Set(procedureIds)
+    procedureMap: {},       // Map: procedureId -> procedure
+    normalizedText: {},     // Map: procedureId -> texte normalisé pré-calculé
+    lastUpdate: null        // Timestamp de dernière mise à jour
+};
+
 // Charger toutes les procédures au démarrage
 async function loadAllProcedures() {
     try {
         proceduresSearchCache = await api.getProcedures();
+        // Construire l'index de recherche
+        buildSearchIndex(proceduresSearchCache);
     } catch (error) {
         console.error('Error loading procedures for search:', error);
         proceduresSearchCache = [];
     }
+}
+
+// Construire l'index de recherche en mémoire
+function buildSearchIndex(procedures) {
+    console.log(`Building search index for ${procedures.length} procedures...`);
+    const startTime = performance.now();
+
+    // Réinitialiser l'index
+    procedureSearchIndex.invertedIndex = {};
+    procedureSearchIndex.procedureMap = {};
+    procedureSearchIndex.normalizedText = {};
+
+    // Stopwords français à ignorer
+    const stopwords = new Set([
+        'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'au', 'aux',
+        'ce', 'cet', 'cette', 'ces', 'et', 'ou', 'mais', 'donc',
+        'dans', 'sur', 'pour', 'par', 'avec', 'sans'
+    ]);
+
+    procedures.forEach(proc => {
+        const id = proc.id;
+        procedureSearchIndex.procedureMap[id] = proc;
+
+        // Construire le texte searchable (pondéré par importance)
+        const searchableText = [
+            proc.title || '',
+            proc.title || '',  // Titre compté 2x (plus important)
+            proc.description || '',
+            proc.category || '',
+            ...(proc.keywords || [])
+        ].join(' ');
+
+        // Normaliser et stocker
+        const normalized = normalizeText(searchableText);
+        procedureSearchIndex.normalizedText[id] = normalized;
+
+        // Extraire les mots et les ajouter à l'index inversé
+        const words = normalized.split(/\s+/).filter(word => {
+            // Filtrer les mots courts et les stopwords
+            return word.length >= 3 && !stopwords.has(word);
+        });
+
+        // Ajouter chaque mot à l'index inversé
+        words.forEach(word => {
+            if (!procedureSearchIndex.invertedIndex[word]) {
+                procedureSearchIndex.invertedIndex[word] = new Set();
+            }
+            procedureSearchIndex.invertedIndex[word].add(id);
+        });
+    });
+
+    procedureSearchIndex.lastUpdate = Date.now();
+    const duration = (performance.now() - startTime).toFixed(2);
+    console.log(`Search index built in ${duration}ms`);
+    console.log(`Index contains ${Object.keys(procedureSearchIndex.invertedIndex).length} unique words`);
 }
 
 // Normalise un texte en retirant les accents
@@ -716,11 +781,11 @@ function searchProcedures(query) {
     }, 300); // Attendre 300ms après la dernière frappe
 }
 
-// Effectuer la recherche
+// Effectuer la recherche avec l'index
 function performProcedureSearch(query) {
     const resultsContainer = document.getElementById('procedure-search-results');
 
-    if (proceduresSearchCache.length === 0) {
+    if (proceduresSearchCache.length === 0 || !procedureSearchIndex.lastUpdate) {
         // Si les procédures ne sont pas encore chargées, les charger
         loadAllProcedures().then(() => {
             performProcedureSearch(query);
@@ -731,18 +796,76 @@ function performProcedureSearch(query) {
     // Normaliser la requête (retirer les accents)
     const normalizedQuery = normalizeText(query);
 
-    // Rechercher dans le titre, la description et les mots-clés (insensible aux accents)
-    const results = proceduresSearchCache.filter(proc => {
-        const titleMatch = normalizeText(proc.title || '').includes(normalizedQuery);
-        const descMatch = normalizeText(proc.description || '').includes(normalizedQuery);
-        const keywordsMatch = proc.keywords?.some(k => normalizeText(k).includes(normalizedQuery));
-        const categoryMatch = normalizeText(proc.category || '').includes(normalizedQuery);
+    // Extraire les mots de la requête
+    const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length >= 2);
 
-        return titleMatch || descMatch || keywordsMatch || categoryMatch;
+    // Utiliser l'index inversé pour trouver les procédures candidates
+    const candidateScores = {};  // Map: procedureId -> score
+
+    queryWords.forEach(queryWord => {
+        // Pour chaque mot de la requête, trouver les procédures qui contiennent ce mot ou un mot similaire
+        Object.keys(procedureSearchIndex.invertedIndex).forEach(indexWord => {
+            if (indexWord.includes(queryWord) || queryWord.includes(indexWord)) {
+                const procedureIds = procedureSearchIndex.invertedIndex[indexWord];
+                procedureIds.forEach(id => {
+                    if (!candidateScores[id]) {
+                        candidateScores[id] = 0;
+                    }
+                    // Score basé sur la longueur du match (match exact = meilleur score)
+                    const matchQuality = Math.min(indexWord.length, queryWord.length) /
+                                       Math.max(indexWord.length, queryWord.length);
+                    candidateScores[id] += matchQuality;
+                });
+            }
+        });
     });
 
-    // Limiter à 10 résultats
-    const limitedResults = results.slice(0, 10);
+    // Calculer un score détaillé pour chaque candidat
+    const scoredResults = Object.entries(candidateScores).map(([id, baseScore]) => {
+        const proc = procedureSearchIndex.procedureMap[id];
+        let detailedScore = baseScore;
+
+        // Bonus pour match dans le titre
+        const titleNorm = normalizeText(proc.title || '');
+        if (titleNorm.includes(normalizedQuery)) {
+            detailedScore += 10;  // Bonus important pour match exact dans titre
+        }
+        queryWords.forEach(word => {
+            if (titleNorm.includes(word)) {
+                detailedScore += 3;  // Bonus pour chaque mot dans titre
+            }
+        });
+
+        // Bonus pour match dans catégorie
+        const categoryNorm = normalizeText(proc.category || '');
+        if (categoryNorm.includes(normalizedQuery)) {
+            detailedScore += 5;
+        }
+
+        // Bonus pour match dans keywords
+        const keywordsText = (proc.keywords || []).map(k => normalizeText(k)).join(' ');
+        queryWords.forEach(word => {
+            if (keywordsText.includes(word)) {
+                detailedScore += 2;
+            }
+        });
+
+        // Bonus pour popularité (usage_count et feedback positif)
+        detailedScore += (proc.usage_count || 0) * 0.1;
+        detailedScore += (proc.positive_feedback_count || 0) * 0.5;
+
+        return {
+            procedure: proc,
+            score: detailedScore
+        };
+    });
+
+    // Trier par score décroissant
+    scoredResults.sort((a, b) => b.score - a.score);
+
+    // Prendre les 10 meilleurs résultats
+    const results = scoredResults.slice(0, 10).map(r => r.procedure);
+    const limitedResults = results;
 
     if (limitedResults.length === 0) {
         resultsContainer.innerHTML = `
