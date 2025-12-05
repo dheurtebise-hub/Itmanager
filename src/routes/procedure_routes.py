@@ -431,3 +431,55 @@ def generate_keywords():
     except Exception as e:
         logger.error(f"Error generating keywords: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@procedure_bp.route('/api/procedures/<int:procedure_id>/analytics', methods=['GET'])
+@rate_limit()
+def get_procedure_analytics(procedure_id):
+    """Récupère les analytics d'une procédure spécifique."""
+    try:
+        analytics = procedure_service.get_procedure_analytics(procedure_id)
+        return jsonify(analytics), 200
+
+    except ValueError as e:
+        logger.error(f"Error getting procedure analytics for {procedure_id}: {e}")
+        return jsonify({'error': str(e)}), 404
+    except Exception as e:
+        logger.error(f"Error getting procedure analytics for {procedure_id}: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@procedure_bp.route('/api/procedures/top', methods=['GET'])
+@rate_limit()
+def get_top_procedures():
+    """Récupère les procédures les plus performantes."""
+    try:
+        limit = int(request.args.get('limit', 10))
+        metric = request.args.get('metric', 'success_rate')
+
+        # Validation
+        if limit < 1 or limit > 50:
+            limit = 10
+
+        if metric not in ['success_rate', 'usage', 'effectiveness']:
+            return jsonify({'error': 'Invalid metric. Must be: success_rate, usage, or effectiveness'}), 400
+
+        top_procedures = procedure_service.get_top_procedures(limit=limit, metric=metric)
+        return jsonify(top_procedures), 200
+
+    except Exception as e:
+        logger.error(f"Error getting top procedures: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@procedure_bp.route('/api/procedures/statistics', methods=['GET'])
+@rate_limit()
+def get_procedures_statistics():
+    """Récupère les statistiques globales sur les procédures."""
+    try:
+        stats = procedure_service.get_procedures_statistics()
+        return jsonify(stats), 200
+
+    except Exception as e:
+        logger.error(f"Error getting procedures statistics: {e}")
+        return jsonify({'error': 'Internal server error'}), 500

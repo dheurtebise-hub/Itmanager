@@ -547,6 +547,133 @@ Réponds UNIQUEMENT avec le JSON (pas de texte avant ou après):
         """Désactive une procédure."""
         return Procedure.delete(procedure_id)
 
+    def get_procedure_analytics(self, procedure_id: int) -> Dict[str, Any]:
+        """Récupère les statistiques d'une procédure."""
+        procedure = Procedure.get_by_id(procedure_id)
+        if not procedure:
+            raise ValueError(f"Procedure {procedure_id} not found")
+
+        positive = procedure.get('positive_feedback_count', 0)
+        negative = procedure.get('negative_feedback_count', 0)
+        total_feedback = positive + negative
+        usage_count = procedure.get('usage_count', 0)
+
+        # Calculer le taux de succès
+        success_rate = (positive / total_feedback * 100) if total_feedback > 0 else None
+
+        # Calculer un score d'efficacité (combinaison usage + feedback)
+        if total_feedback >= 5:
+            effectiveness_score = (success_rate / 100) * min(1.0, usage_count / 10)
+        else:
+            effectiveness_score = None  # Pas assez de données
+
+        return {
+            'procedure_id': procedure_id,
+            'title': procedure.get('title'),
+            'category': procedure.get('category'),
+            'usage_count': usage_count,
+            'positive_feedback': positive,
+            'negative_feedback': negative,
+            'total_feedback': total_feedback,
+            'success_rate': round(success_rate, 1) if success_rate is not None else None,
+            'effectiveness_score': round(effectiveness_score, 2) if effectiveness_score is not None else None,
+            'created_at': procedure.get('created_at'),
+            'created_by': procedure.get('created_by')
+        }
+
+    def get_top_procedures(self, limit: int = 10, metric: str = 'success_rate') -> List[Dict[str, Any]]:
+        """Récupère les procédures les plus performantes.
+
+        Args:
+            limit: Nombre de procédures à retourner
+            metric: Métrique de tri ('success_rate', 'usage', 'effectiveness')
+
+        Returns:
+            Liste des procédures avec leurs statistiques
+        """
+        # Récupérer toutes les procédures actives
+        all_procedures = Procedure.get_all(is_active=True, limit=500)
+
+        # Calculer les métriques pour chaque procédure
+        procedures_with_stats = []
+        for proc in all_procedures:
+            positive = proc.get('positive_feedback_count', 0)
+            negative = proc.get('negative_feedback_count', 0)
+            total_feedback = positive + negative
+            usage_count = proc.get('usage_count', 0)
+
+            # Calculer le taux de succès
+            success_rate = (positive / total_feedback) if total_feedback > 0 else 0
+
+            # Score d'efficacité (nécessite au moins 5 feedbacks)
+            if total_feedback >= 5:
+                effectiveness_score = success_rate * min(1.0, usage_count / 10)
+            else:
+                effectiveness_score = 0
+
+            proc_with_stats = dict(proc)
+            proc_with_stats['success_rate'] = success_rate * 100
+            proc_with_stats['effectiveness_score'] = effectiveness_score
+            proc_with_stats['total_feedback'] = total_feedback
+
+            # Filtrer les procédures sans utilisation
+            if metric == 'success_rate' and total_feedback >= 3:
+                procedures_with_stats.append(proc_with_stats)
+            elif metric == 'effectiveness' and total_feedback >= 5:
+                procedures_with_stats.append(proc_with_stats)
+            elif metric == 'usage' and usage_count > 0:
+                procedures_with_stats.append(proc_with_stats)
+
+        # Trier selon la métrique choisie
+        if metric == 'success_rate':
+            procedures_with_stats.sort(key=lambda x: (x['success_rate'], x['usage_count']), reverse=True)
+        elif metric == 'usage':
+            procedures_with_stats.sort(key=lambda x: x['usage_count'], reverse=True)
+        elif metric == 'effectiveness':
+            procedures_with_stats.sort(key=lambda x: (x['effectiveness_score'], x['usage_count']), reverse=True)
+
+        return procedures_with_stats[:limit]
+
+    def get_procedures_statistics(self) -> Dict[str, Any]:
+        """Récupère des statistiques globales sur les procédures."""
+        all_procedures = Procedure.get_all(is_active=True, limit=1000)
+
+        total_procedures = len(all_procedures)
+        total_usage = sum(p.get('usage_count', 0) for p in all_procedures)
+        total_positive = sum(p.get('positive_feedback_count', 0) for p in all_procedures)
+        total_negative = sum(p.get('negative_feedback_count', 0) for p in all_procedures)
+        total_feedback = total_positive + total_negative
+
+        # Procédures avec feedback
+        procedures_with_feedback = [p for p in all_procedures if (p.get('positive_feedback_count', 0) + p.get('negative_feedback_count', 0)) > 0]
+
+        # Taux de succès global
+        global_success_rate = (total_positive / total_feedback * 100) if total_feedback > 0 else 0
+
+        # Catégories les plus utilisées
+        categories = {}
+        for proc in all_procedures:
+            cat = proc.get('category', 'autre')
+            if cat not in categories:
+                categories[cat] = {'count': 0, 'usage': 0}
+            categories[cat]['count'] += 1
+            categories[cat]['usage'] += proc.get('usage_count', 0)
+
+        top_categories = sorted(categories.items(), key=lambda x: x[1]['usage'], reverse=True)[:5]
+
+        return {
+            'total_procedures': total_procedures,
+            'total_usage': total_usage,
+            'total_feedback': total_feedback,
+            'positive_feedback': total_positive,
+            'negative_feedback': total_negative,
+            'global_success_rate': round(global_success_rate, 1),
+            'procedures_with_feedback': len(procedures_with_feedback),
+            'procedures_with_feedback_rate': round(len(procedures_with_feedback) / total_procedures * 100, 1) if total_procedures > 0 else 0,
+            'average_usage_per_procedure': round(total_usage / total_procedures, 1) if total_procedures > 0 else 0,
+            'top_categories': [{'category': cat, 'count': data['count'], 'usage': data['usage']} for cat, data in top_categories]
+        }
+
 
 # Instance globale
 procedure_service = ProcedureService()
