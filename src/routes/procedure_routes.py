@@ -14,15 +14,57 @@ logger = logging.getLogger(__name__)
 @procedure_bp.route('/api/procedures/suggestions/<int:ticket_id>', methods=['GET'])
 @rate_limit()
 def get_procedure_suggestions(ticket_id):
-    """Récupère les suggestions de procédures pour un ticket."""
+    """Récupère les suggestions de procédures pour un ticket (avec pagination optionnelle)."""
     try:
+        # Paramètres de pagination optionnels
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+
+        # Limites de sécurité
+        if page < 1:
+            page = 1
+        if per_page < 1:
+            per_page = 10
+        if per_page > 50:
+            per_page = 50
+
         suggestions = procedure_service.get_suggestions_for_ticket(ticket_id)
 
         # Si aucune suggestion, retourner une liste vide (pas d'erreur)
         if not suggestions:
-            return jsonify([]), 200
+            return jsonify({
+                'suggestions': [],
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': 0,
+                    'total_pages': 0,
+                    'has_next': False,
+                    'has_prev': False
+                }
+            }), 200
 
-        return jsonify(suggestions), 200
+        # Appliquer la pagination aux suggestions
+        total = len(suggestions)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_suggestions = suggestions[start:end]
+
+        total_pages = (total + per_page - 1) // per_page
+
+        response = {
+            'suggestions': paginated_suggestions,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': total_pages,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        }
+
+        return jsonify(response), 200
 
     except ValueError as e:
         logger.error(f"Error getting procedure suggestions for ticket {ticket_id}: {e}")
@@ -88,14 +130,54 @@ def submit_procedure_feedback():
 @procedure_bp.route('/api/procedures', methods=['GET'])
 @rate_limit()
 def get_all_procedures():
-    """Récupère toutes les procédures actives."""
+    """Récupère toutes les procédures actives avec pagination."""
     try:
         category = request.args.get('category')
-        limit = int(request.args.get('limit', 100))
 
-        procedures = procedure_service.get_all_procedures(category=category, limit=limit)
-        return jsonify(procedures), 200
+        # Paramètres de pagination
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
 
+        # Limites de sécurité
+        if page < 1:
+            page = 1
+        if per_page < 1:
+            per_page = 20
+        if per_page > 100:
+            per_page = 100
+
+        # Calculer l'offset
+        offset = (page - 1) * per_page
+
+        # Récupérer les procédures avec pagination
+        result = procedure_service.get_all_procedures_paginated(
+            category=category,
+            limit=per_page,
+            offset=offset
+        )
+
+        # Construire la réponse avec métadonnées de pagination
+        total = result['total']
+        procedures = result['procedures']
+        total_pages = (total + per_page - 1) // per_page  # Arrondi supérieur
+
+        response = {
+            'procedures': procedures,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'total_pages': total_pages,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        }
+
+        return jsonify(response), 200
+
+    except ValueError as ve:
+        logger.error(f"Invalid pagination parameters: {ve}")
+        return jsonify({'error': 'Invalid pagination parameters'}), 400
     except Exception as e:
         logger.error(f"Error getting procedures: {e}")
         return jsonify({'error': 'Internal server error'}), 500

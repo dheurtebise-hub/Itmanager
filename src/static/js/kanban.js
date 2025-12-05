@@ -479,9 +479,13 @@ async function showProceduresForTicket(ticketId) {
 
     try {
         // Appeler l'API pour obtenir les suggestions de procédures
-        const suggestions = await api.getProcedureSuggestions(ticketId);
+        const response = await api.getProcedureSuggestions(ticketId);
 
-        renderProcedures(ticket, suggestions);
+        // La réponse contient { suggestions: [...], pagination: {...} }
+        const suggestions = response.suggestions || response; // Fallback si l'ancien format est retourné
+        const pagination = response.pagination;
+
+        renderProcedures(ticket, suggestions, pagination);
     } catch (error) {
         console.error('Error loading procedures:', error);
 
@@ -490,7 +494,7 @@ async function showProceduresForTicket(ticketId) {
     }
 }
 
-function renderProcedures(ticket, suggestions) {
+function renderProcedures(ticket, suggestions, pagination = null) {
     const procedureContent = document.getElementById('procedure-content');
     if (!procedureContent) return;
 

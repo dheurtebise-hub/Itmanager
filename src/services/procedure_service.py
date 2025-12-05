@@ -449,6 +449,35 @@ Format JSON attendu:
         """Récupère toutes les procédures actives."""
         return Procedure.get_all(category=category, is_active=True, limit=limit)
 
+    def get_all_procedures_paginated(
+        self,
+        category: Optional[str] = None,
+        limit: int = 20,
+        offset: int = 0
+    ) -> Dict[str, Any]:
+        """Récupère les procédures avec pagination.
+
+        Returns:
+            Dict contenant:
+            - procedures: liste des procédures
+            - total: nombre total de procédures (pour calculer les pages)
+        """
+        # Compter le total
+        total = Procedure.count_all(category=category, is_active=True)
+
+        # Récupérer les procédures pour la page demandée
+        procedures = Procedure.get_all(
+            category=category,
+            is_active=True,
+            limit=limit,
+            offset=offset
+        )
+
+        return {
+            'procedures': procedures,
+            'total': total
+        }
+
     def update_procedure(self, procedure_id: int, data: Dict[str, Any]) -> bool:
         """Met à jour une procédure."""
         return Procedure.update(procedure_id, data)

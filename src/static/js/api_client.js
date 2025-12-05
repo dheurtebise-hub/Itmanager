@@ -98,8 +98,11 @@ class APIClient {
     }
 
     // Procedures
-    async getProcedureSuggestions(ticketId) {
-        return this.request(`/api/procedures/suggestions/${ticketId}`);
+    async getProcedureSuggestions(ticketId, page = 1, perPage = 10) {
+        const response = await this.request(`/api/procedures/suggestions/${ticketId}?page=${page}&per_page=${perPage}`);
+        // La réponse contient maintenant { suggestions: [...], pagination: {...} }
+        // On retourne l'objet complet pour que le code appelant puisse accéder aux métadonnées de pagination
+        return response;
     }
 
     async createProcedureFromTicket(ticketId) {

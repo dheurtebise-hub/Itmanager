@@ -124,6 +124,23 @@ class Procedure:
         return result
 
     @staticmethod
+    def count_all(category: Optional[str] = None, is_active: bool = True) -> int:
+        """Compte le nombre total de procédures avec filtres."""
+        query = "SELECT COUNT(*) as total FROM procedures WHERE 1=1"
+        params = []
+
+        if is_active is not None:
+            query += " AND is_active = ?"
+            params.append(is_active)
+
+        if category:
+            query += " AND category = ?"
+            params.append(category)
+
+        result = db.fetchone(query, tuple(params))
+        return result['total'] if result else 0
+
+    @staticmethod
     def search_by_keywords(keywords: List[str], limit: int = 10) -> List[Dict[str, Any]]:
         """Recherche des procédures par mots-clés (insensible aux accents)."""
         if not keywords:
