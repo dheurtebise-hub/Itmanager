@@ -9,6 +9,7 @@ from datetime import datetime
 from models.procedure import Procedure, normalize_text
 from models.ticket import Ticket
 from services.ai_service import AIService
+from services.suggestion_cache import suggestion_cache
 
 
 # Seuil minimum de confiance pour suggérer une procédure (0-1)
@@ -205,8 +206,27 @@ class ProcedureService:
             return self._create_basic_procedure(ticket)
 
     def _generate_procedure_with_ai(self, ticket: Dict[str, Any]) -> Dict[str, Any]:
-        """Génère une procédure avec l'IA."""
+        """Génère une procédure avec l'IA (avec cache pour éviter les doublons)."""
         from config import config
+
+        # Créer une clé de cache basée sur le contenu du ticket
+        cache_key_parts = [
+            ticket.get('category', 'autre'),
+            ticket.get('subject', '')[:100],
+            ticket.get('summary', '')[:200]
+        ]
+        cache_content = '|'.join(cache_key_parts)
+
+        # Vérifier le cache
+        cached = suggestion_cache.get(
+            ticket.get('category', 'autre'),
+            cache_content,
+            ticket.get('priority', 'medium')
+        )
+
+        if cached and 'procedure' in cached:
+            self.logger.info("Procédure récupérée depuis le cache")
+            return cached['procedure']
 
         model = config.get('ai_model_categorize', 'claude-haiku-4-5-20251001')
 
@@ -242,16 +262,66 @@ Format JSON attendu:
             )
 
             result_text = response.content[0].text
-            result_text = result_text.replace('```json', '').replace('```', '').strip()
-            procedure_data = json.loads(result_text)
+
+            # Nettoyage robuste du JSON
+            result_text = result_text.strip()
+            # Retirer les marqueurs de code
+            if '```json' in result_text:
+                result_text = result_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in result_text:
+                result_text = result_text.split('```')[1].split('```')[0].strip()
+
+            # Parser le JSON
+            try:
+                procedure_data = json.loads(result_text)
+            except json.JSONDecodeError as je:
+                self.logger.error(f"JSON parsing failed: {je}. Trying to extract JSON with regex...")
+                # Fallback: extraire le JSON avec regex
+                import re
+                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', result_text, re.DOTALL)
+                if json_match:
+                    procedure_data = json.loads(json_match.group())
+                else:
+                    raise ValueError("Impossible d'extraire un JSON valide de la réponse IA")
+
+            # Validation du schéma JSON
+            required_fields = ['title', 'description', 'steps', 'keywords']
+            missing_fields = [f for f in required_fields if f not in procedure_data]
+
+            if missing_fields:
+                self.logger.warning(f"Champs manquants dans la procédure générée: {missing_fields}")
+                # Ajouter des valeurs par défaut
+                if 'title' not in procedure_data:
+                    procedure_data['title'] = ticket.get('subject', 'Procédure sans titre')[:100]
+                if 'description' not in procedure_data:
+                    procedure_data['description'] = ticket.get('summary', 'Pas de description')
+                if 'steps' not in procedure_data or not isinstance(procedure_data['steps'], list):
+                    procedure_data['steps'] = ["Étape 1: Analyser le problème", "Étape 2: Appliquer la solution"]
+                if 'keywords' not in procedure_data or not isinstance(procedure_data['keywords'], list):
+                    procedure_data['keywords'] = [ticket.get('category', 'autre')]
+
+            # Validation des types
+            if not isinstance(procedure_data['steps'], list):
+                procedure_data['steps'] = [str(procedure_data['steps'])]
+            if not isinstance(procedure_data['keywords'], list):
+                procedure_data['keywords'] = [str(procedure_data['keywords'])]
 
             # Traquer le coût
             self.ai_service._track_cost(model, response.usage)
 
+            # Mettre en cache la procédure générée
+            suggestion_cache.set(
+                ticket.get('category', 'autre'),
+                cache_content,
+                ticket.get('priority', 'medium'),
+                {'procedure': procedure_data}
+            )
+            self.logger.info("Procédure générée avec succès et mise en cache")
+
             return procedure_data
 
         except Exception as e:
-            self.logger.error(f"Error generating procedure with AI: {e}")
+            self.logger.error(f"Error generating procedure with AI: {e}", exc_info=True)
             raise
 
     def _create_basic_procedure(self, ticket: Dict[str, Any]) -> Dict[str, Any]:
