@@ -321,28 +321,89 @@ class ProcedureService:
 
         model = config.get('ai_model_categorize', 'claude-haiku-4-5-20251001')
 
-        prompt = f"""Basé sur ce ticket de support IT, crée une procédure détaillée pour résoudre ce type de problème.
+        prompt = f"""Tu es un expert en support IT. Crée une procédure détaillée et réutilisable pour résoudre le problème décrit dans ce ticket.
 
-TICKET:
+EXEMPLES DE BONNES PROCÉDURES:
+
+Exemple 1:
+TICKET: "Outlook ne synchronise plus les emails depuis ce matin"
+PROCÉDURE:
+{{
+    "title": "Résoudre les problèmes de synchronisation Outlook",
+    "description": "Cette procédure permet de résoudre les problèmes de synchronisation des emails dans Microsoft Outlook lorsque les messages ne se téléchargent plus.",
+    "steps": [
+        "Vérifier la connexion Internet et s'assurer qu'elle est stable",
+        "Ouvrir Outlook et aller dans Fichier > Paramètres du compte > Paramètres du compte",
+        "Sélectionner le compte email concerné et cliquer sur 'Réparer'",
+        "Suivre l'assistant de réparation automatique",
+        "Si le problème persiste, aller dans Fichier > Options > Avancé",
+        "Cliquer sur 'Envoyer/Recevoir' puis décocher 'Envoyer immédiatement lors de la connexion'",
+        "Redémarrer Outlook et tester la synchronisation",
+        "Si échec, recréer le profil Outlook: Panneau de configuration > Courrier > Profils"
+    ],
+    "keywords": ["outlook", "synchronisation", "email", "messagerie", "réparation", "profil"]
+}}
+
+Exemple 2:
+TICKET: "L'imprimante HP du 3ème étage imprime des pages blanches"
+PROCÉDURE:
+{{
+    "title": "Résoudre l'impression de pages blanches",
+    "description": "Procédure de diagnostic et résolution des problèmes d'impression de pages vierges sur imprimantes HP.",
+    "steps": [
+        "Vérifier que l'imprimante a suffisamment d'encre/toner (menu ou LED)",
+        "Imprimer une page de test directement depuis l'imprimante (bouton test)",
+        "Si la page de test est vierge: retirer et réinstaller les cartouches d'encre/toner",
+        "Vérifier que les protections plastiques ont bien été retirées des cartouches neuves",
+        "Nettoyer les têtes d'impression via le menu de l'imprimante",
+        "Lancer un cycle de nettoyage profond (menu Maintenance)",
+        "Si problème persiste: désinstaller et réinstaller le pilote d'imprimante sur le PC",
+        "Télécharger la dernière version du pilote depuis le site HP"
+    ],
+    "keywords": ["imprimante", "impression", "pages blanches", "cartouche", "toner", "pilote", "hp"]
+}}
+
+Exemple 3:
+TICKET: "Impossible d'accéder au dossier partagé du service RH"
+PROCÉDURE:
+{{
+    "title": "Restaurer l'accès aux dossiers partagés réseau",
+    "description": "Procédure pour résoudre les problèmes d'accès aux dossiers partagés sur le réseau de l'entreprise.",
+    "steps": [
+        "Vérifier que l'utilisateur est connecté au réseau de l'entreprise (câble ou VPN)",
+        "Tester l'accès au serveur: Ouvrir 'Exécuter' (Win+R) et taper \\\\\\\\nomduserveur",
+        "Si accès refusé: vérifier que les identifiants réseau sont corrects",
+        "Ouvrir l'Explorateur > Clic droit sur 'Ce PC' > Connecter un lecteur réseau",
+        "Saisir le chemin: \\\\\\\\serveur\\\\dossier et cocher 'Se reconnecter à l'ouverture de session'",
+        "Entrer les identifiants du domaine si demandé (DOMAINE\\\\utilisateur)",
+        "Si échec: Panneau de configuration > Gestionnaire d'identification",
+        "Supprimer les anciennes informations d'identification pour ce serveur",
+        "Réessayer la connexion avec les bons identifiants",
+        "Si problème persiste: contacter l'administrateur réseau pour vérifier les permissions"
+    ],
+    "keywords": ["dossier partage", "reseau", "acces", "permissions", "serveur", "vpn", "lecteur reseau"]
+}}
+
+TICKET À TRAITER:
 - Sujet: {ticket.get('subject', '')}
 - Catégorie: {ticket.get('category', '')}
 - Résumé: {ticket.get('summary', '')}
 - Contenu: {ticket.get('body', '')[:1000]}
 
-Crée une procédure réutilisable qui pourra aider à résoudre des problèmes similaires à l'avenir.
+INSTRUCTIONS:
+1. Analyse le ticket et identifie le problème principal
+2. Crée une procédure DÉTAILLÉE avec au moins 6-8 étapes concrètes
+3. Chaque étape doit être ACTIONNABLE et PRÉCISE (avec menus, boutons, commandes exactes)
+4. Inclus des étapes de diagnostic et des solutions de contournement
+5. Choisis 5-7 mots-clés pertinents en minuscules, sans accents
+6. Le titre doit être clair et commencer par un verbe d'action
 
-Réponds UNIQUEMENT avec un JSON valide contenant:
-- title: Un titre court et descriptif
-- description: Une description claire du problème et de la solution
-- steps: Une liste d'étapes numérotées pour résoudre le problème
-- keywords: Une liste de mots-clés pertinents
-
-Format JSON attendu:
+Réponds UNIQUEMENT avec le JSON (pas de texte avant ou après):
 {{
     "title": "...",
     "description": "...",
-    "steps": ["Étape 1", "Étape 2", "Étape 3", ...],
-    "keywords": ["mot-clé1", "mot-clé2", ...]
+    "steps": ["...", "...", ...],
+    "keywords": ["...", "...", ...]
 }}"""
 
         try:
