@@ -14,6 +14,7 @@ ALLOWED_TABLES = {
     'tickets',
     'procedures',
     'categories',
+    'technicians',
     'knowledge_base',
     'api_costs',
     'sla_config',
