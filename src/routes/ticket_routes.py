@@ -123,6 +123,7 @@ def get_tickets():
     per_page = min(request.args.get('per_page', 50, type=int), 100)
     status = request.args.get('status')
     category = request.args.get('category')
+    assigned_to = request.args.get('assigned_to')
     priority = request.args.get('priority')
     search = request.args.get('search', '').strip()
     sort_by = request.args.get('sort_by', 'received_date')
@@ -147,6 +148,11 @@ def get_tickets():
         query += " AND category = ?"
         count_query += " AND category = ?"
         params.append(category)
+
+    if assigned_to:
+        query += " AND assigned_to = ?"
+        count_query += " AND assigned_to = ?"
+        params.append(assigned_to)
 
     if priority:
         query += " AND priority = ?"
@@ -201,7 +207,7 @@ def update_ticket(ticket_id):
     """Met à jour un ticket."""
     data = request.json
 
-    allowed = ['status', 'category', 'priority', 'resolution', 'summary']
+    allowed = ['status', 'category', 'assigned_to', 'priority', 'resolution', 'summary']
     updates = {k: v for k, v in data.items() if k in allowed}
 
     if not updates:
