@@ -15,24 +15,24 @@ async function loadTickets() {
     }
 }
 
-async function loadCategories() {
+async function loadTechniciansFilter() {
     try {
-        categories = await api.getCategories();
-        renderCategoryFilter();
+        const technicians = await getTechnicians();
+        renderTechnicianFilter(technicians);
     } catch (error) {
-        console.error('Error loading categories:', error);
+        console.error('Error loading technicians:', error);
     }
 }
 
-function renderCategoryFilter() {
-    const select = document.getElementById('categoryFilter');
+function renderTechnicianFilter(technicians) {
+    const select = document.getElementById('technicianFilter');
     if (!select) return;
 
-    const options = categories.map(cat =>
-        `<option value="${cat.name}">${cat.icon} ${cat.name}</option>`
+    const options = technicians.map(tech =>
+        `<option value="${tech.name}">${tech.name}</option>`
     ).join('');
 
-    select.innerHTML = '<option value="">Toutes les catégories</option>' + options;
+    select.innerHTML = '<option value="">Tous les techniciens</option>' + options;
 }
 
 function renderTickets() {
@@ -72,6 +72,10 @@ function createTicketCard(ticket) {
     const notUserRequestButton = !ticket.is_not_user_request ?
         `<button class="btn-not-user-request" onclick="event.stopPropagation(); markAsNotUserRequestFromCard(${ticket.id})" title="Ce ticket n'est pas une demande utilisateur">🚫</button>` : '';
 
+    // Afficher le technicien assigné si présent
+    const assignedTechnicianBadge = ticket.assigned_to ?
+        `<div class="ticket-assigned">👤 ${escapeHtml(ticket.assigned_to)}</div>` : '';
+
     return `
         <div class="ticket-card${notUserRequestClass}"
              draggable="true"
@@ -89,6 +93,7 @@ function createTicketCard(ticket) {
                 </div>
             </div>
             <div class="ticket-subject">${escapeHtml(ticket.subject)}</div>
+            ${assignedTechnicianBadge}
             <div class="ticket-info">
                 <div class="ticket-sender">
                     ${personIcon} ${escapeHtml(ticket.sender_name || ticket.sender_email)}
@@ -160,7 +165,7 @@ function filterTickets() {
 }
 
 function applyFilters(searchQuery = '') {
-    const category = document.getElementById('categoryFilter')?.value || '';
+    const technician = document.getElementById('technicianFilter')?.value || '';
     const priority = document.getElementById('priorityFilter')?.value || '';
 
     filteredTickets = allTickets.filter(ticket => {
@@ -169,10 +174,10 @@ function applyFilters(searchQuery = '') {
             ticket.summary?.toLowerCase().includes(searchQuery) ||
             ticket.sender_email?.toLowerCase().includes(searchQuery);
 
-        const matchCategory = !category || ticket.category === category;
+        const matchTechnician = !technician || ticket.assigned_to === technician;
         const matchPriority = !priority || ticket.priority === priority;
 
-        return matchSearch && matchCategory && matchPriority;
+        return matchSearch && matchTechnician && matchPriority;
     });
 
     renderTickets();

@@ -111,8 +111,8 @@ async function renderTicketDetails(ticket) {
         { value: 'resolved', label: '✅ Résolu' }
     ];
 
-    // Charger les catégories pour le select
-    const categories = await getCategories();
+    // Charger les techniciens pour le select
+    const technicians = await getTechnicians();
 
     return `
         <div class="ticket-modal-header">
@@ -148,16 +148,13 @@ async function renderTicketDetails(ticket) {
                 </div>
 
                 <div class="form-group">
-                    <label><strong>Catégorie</strong></label>
-                    <select id="ticketCategory" onchange="updateTicketField('category', this.value)">
-                        ${!ticket.category ? '<option value="">-- Sélectionner une catégorie --</option>' : ''}
-                        ${categories.map(cat =>
-                            `<option value="${cat.name}" ${ticket.category === cat.name ? 'selected' : ''}>${cat.icon} ${cat.label}</option>`
+                    <label><strong>Assigné à</strong></label>
+                    <select id="ticketAssignedTo" onchange="updateTicketField('assigned_to', this.value)">
+                        <option value="">-- Non assigné --</option>
+                        ${technicians.map(tech =>
+                            `<option value="${tech.name}" ${ticket.assigned_to === tech.name ? 'selected' : ''}>${tech.name}</option>`
                         ).join('')}
                     </select>
-                    ${ticket.ai_confidence ? `
-                        <div class="form-help">Catégorisé par IA (${Math.round(ticket.ai_confidence * 100)}%)</div>
-                    ` : ''}
                 </div>
 
                 <div class="flex gap-2 mt-3">
@@ -196,6 +193,7 @@ async function updateTicketField(field, value) {
         const fieldLabels = {
             'status': 'Statut',
             'category': 'Catégorie',
+            'assigned_to': 'Assignation',
             'priority': 'Priorité'
         };
         const fieldLabel = fieldLabels[field] || field;

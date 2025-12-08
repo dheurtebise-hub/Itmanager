@@ -203,6 +203,17 @@
     overflow: hidden;
 }
 
+.ticket-assigned {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    margin-bottom: 0.35rem;
+    background: #E3F2FD;
+    color: #1976D2;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
 .ticket-info {
     display: flex;
     justify-content: space-between;
