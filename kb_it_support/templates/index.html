@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KB_IT_SUPPORT v1.0</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <span class="header-title">&gt; KB_IT_SUPPORT <span class="header-version">v1.0</span></span>
+        </div>
+        <div class="header-center">
+            <div class="search-wrapper">
+                <input type="text"
+                       id="searchInput"
+                       class="search-input"
+                       placeholder="search:________">
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn-primary" id="btnNew">+ NEW</button>
+            <button class="btn-icon" id="btnSettings" title="Settings">⚙</button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-item" data-view="home">
+                    <span class="sidebar-icon">🏠</span>
+                    <span class="sidebar-label">HOME</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-item" data-category="all">
+                    <span class="sidebar-icon">📂</span>
+                    <span class="sidebar-label">ALL</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-header">
+                    <span class="sidebar-icon">📁</span>
+                    <span class="sidebar-label">CATEGORIES</span>
+                </div>
+                <div id="categoryTree" class="category-tree">
+                    <!-- Généré dynamiquement par JavaScript -->
+                </div>
+            </div>
+
+            <div class="sidebar-section sidebar-footer">
+                <button class="btn-sidebar-add" id="btnNewCategory">
+                    <span>+</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content" id="mainContent">
+            <!-- Vue Home (par défaut) -->
+            <div id="homeView" class="view">
+                <div class="view-header">
+                    <h1 class="view-title">// Home</h1>
+                </div>
+
+                <div class="stats-card">
+                    <h2 class="card-title">📊 STATISTIQUES</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Total</span>
+                            <span class="stat-value" id="statTotal">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Cette semaine</span>
+                            <span class="stat-value" id="statWeek">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <h2 class="card-title">🕐 RÉCEMMENT MODIFIÉES</h2>
+                    <div id="recentProcedures" class="procedure-list">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <h2 class="card-title">📁 NAVIGATION PAR CATÉGORIES</h2>
+                    <div id="categoryGrid" class="category-grid">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vue Liste des procédures -->
+            <div id="listView" class="view" style="display: none;">
+                <div class="view-header">
+                    <h1 class="view-title" id="listViewTitle">// Procédures</h1>
+                    <div class="view-controls">
+                        <select id="sortSelect" class="select-control">
+                            <option value="updated_at">Date modification</option>
+                            <option value="created_at">Date création</option>
+                            <option value="title">Titre (A-Z)</option>
+                            <option value="usage_count">Popularité</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="procedureList" class="procedure-list">
+                    <!-- Généré dynamiquement -->
+                </div>
+
+                <div id="pagination" class="pagination">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Vue Détail d'une procédure -->
+            <div id="detailView" class="view" style="display: none;">
+                <div class="view-header">
+                    <button class="btn-back" id="btnBack">← Retour</button>
+                    <h1 class="view-title" id="detailViewTitle">// Procédure</h1>
+                    <div class="view-controls">
+                        <button class="btn-secondary" id="btnEdit">EDIT</button>
+                        <button class="btn-secondary" id="btnExport">EXPORT PDF</button>
+                        <button class="btn-secondary" id="btnHistory">HISTORY</button>
+                        <button class="btn-danger" id="btnArchive">ARCHIVE</button>
+                    </div>
+                </div>
+
+                <div id="procedureDetail" class="procedure-detail">
+                    <!-- Généré dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Vue Éditeur -->
+            <div id="editorView" class="view" style="display: none;">
+                <div class="view-header">
+                    <button class="btn-back" id="btnEditorBack">← Retour</button>
+                    <h1 class="view-title" id="editorViewTitle">// Nouvelle procédure</h1>
+                </div>
+
+                <div class="editor-container">
+                    <form id="procedureForm">
+                        <div class="form-section">
+                            <h2 class="section-title">INFORMATIONS</h2>
+
+                            <div class="form-group">
+                                <label for="procTitle" class="form-label">Titre *</label>
+                                <input type="text"
+                                       id="procTitle"
+                                       class="form-input"
+                                       placeholder="Titre de la procédure"
+                                       required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="procCategory" class="form-label">Catégorie *</label>
+                                <select id="procCategory" class="form-select" required>
+                                    <option value="">Sélectionner une catégorie</option>
+                                    <!-- Généré dynamiquement -->
+                                </select>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="procEstimatedTime" class="form-label">Temps estimé (min)</label>
+                                    <input type="number"
+                                           id="procEstimatedTime"
+                                           class="form-input"
+                                           placeholder="15"
+                                           min="1">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="procDescription" class="form-label">Description courte</label>
+                                <textarea id="procDescription"
+                                          class="form-textarea"
+                                          rows="2"
+                                          placeholder="Description courte de la procédure"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Tags</label>
+                                <div class="tags-control">
+                                    <button type="button" class="btn-secondary btn-sm" id="btnGenerateTags">
+                                        🤖 Générer avec IA
+                                    </button>
+                                    <div id="tagsList" class="tags-list">
+                                        <!-- Tags générés dynamiquement -->
+                                    </div>
+                                    <input type="text"
+                                           id="tagInput"
+                                           class="form-input"
+                                           placeholder="Ajouter un tag...">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h2 class="section-title">CONTENU</h2>
+
+                            <div class="editor-toolbar">
+                                <button type="button" class="toolbar-btn" data-action="bold" title="Bold">
+                                    <strong>B</strong>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="italic" title="Italic">
+                                    <em>I</em>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="heading1" title="Heading 1">
+                                    H1
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="heading2" title="Heading 2">
+                                    H2
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="list" title="List">
+                                    •
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="numberedList" title="Numbered List">
+                                    1.
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="code" title="Code Block">
+                                    &lt;/&gt;
+                                </button>
+                                <button type="button" class="toolbar-btn" data-action="link" title="Link">
+                                    🔗
+                                </button>
+                            </div>
+
+                            <div class="form-group">
+                                <textarea id="procContent"
+                                          class="form-textarea editor-textarea"
+                                          rows="20"
+                                          placeholder="## Objectif
+
+Décrivez l'objectif de cette procédure...
+
+## Prérequis
+
+- Prérequis 1
+- Prérequis 2
+
+## Étapes
+
+1. Première étape
+2. Deuxième étape
+
+```powershell
+# Exemple de code
+Get-Command
+```"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h2 class="section-title">FICHIERS JOINTS</h2>
+
+                            <div class="upload-area" id="uploadArea">
+                                <input type="file" id="fileInput" multiple hidden>
+                                <div class="upload-placeholder">
+                                    <p>📤 Drag & Drop files here or click to upload</p>
+                                    <p class="upload-hint">Max 50 MB par fichier</p>
+                                </div>
+                            </div>
+
+                            <div id="filesList" class="files-list">
+                                <!-- Fichiers générés dynamiquement -->
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary btn-lg">SAVE</button>
+                            <button type="button" class="btn-secondary btn-lg" id="btnCancel">CANCEL</button>
+                            <button type="button" class="btn-secondary btn-lg" id="btnPreview">PREVIEW</button>
+                            <span class="autosave-status" id="autosaveStatus"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Settings -->
+    <div id="modalSettings" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⚙ Paramètres</h2>
+                <button class="modal-close" id="btnCloseSettings">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="settingClaudeKey" class="form-label">Clé API Claude</label>
+                    <input type="password"
+                           id="settingClaudeKey"
+                           class="form-input"
+                           placeholder="sk-ant-...">
+                </div>
+                <div class="form-group">
+                    <label for="settingCompanyName" class="form-label">Nom de l'entreprise</label>
+                    <input type="text"
+                           id="settingCompanyName"
+                           class="form-input"
+                           placeholder="Service IT">
+                </div>
+                <button type="button" class="btn-secondary" id="btnTestClaude">
+                    Tester la connexion Claude
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btnSaveSettings">SAVE</button>
+                <button class="btn-secondary" id="btnCancelSettings">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
